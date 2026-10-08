@@ -232,8 +232,9 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 .row .v{font-weight:600}
 .row button{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
 .small{font-size:13px;color:var(--muted);margin:10px 0 0}
-footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--rule);font-size:13px;line-height:1.45;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(20px,3vw,40px);align-items:start}
-footer p{margin:0 0 8px}
+footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--rule);font-size:12px;line-height:1.35;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(16px,2.5vw,32px);align-items:start}
+footer p{margin:0 0 4px}
+footer p:last-child{margin-bottom:0}
 footer a{color:var(--flow-strong)}
 
 .narrow .node-name{font-size:26px}
