@@ -2,8 +2,6 @@
 
 Where each export dollar originates, and which market it goes to. The map shows the provincial origin; the bands show the destination.
 
-Live site: [lucascampoli.github.io/arg-opex-visualizer](https://lucascampoli.github.io/arg-opex-visualizer/).
-
 ## Sources
 
 - INDEC, Provincial origin of exports (OPEX), microdata and table annex. <https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-2-79>
