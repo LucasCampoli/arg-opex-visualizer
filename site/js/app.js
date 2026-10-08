@@ -463,7 +463,7 @@ function renderPanel(){
   let h = '';
   if(sel.type==='pais'){
     const n = NATION;
-    h += `<p class="crumb">Argentina · ${esc(PER.label)}</p><h2>Todo el país</h2>`;
+    h += `<div class="panel-main"><p class="crumb">Argentina · ${esc(PER.label)}</p><h2>Todo el país</h2>`;
     h += `<div class="big"><span class="n">${M(n.total)}</span><span class="u">millones de USD</span></div>`;
     h += `<p class="facts">${varText(n.var)}</p>`;
     h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(n.r,n.total)}`;
@@ -474,41 +474,47 @@ function renderPanel(){
     }
     h += `</div>`;
     h += evoBlock('N');
+    h += `</div>`;
     const rmax = d3.max(Object.values(REGIONS),r=>r.total);
+    h += `<div class="pair">`;
     h += `<div class="sec"><h3>De dónde sale</h3><ul class="rows">${Object.entries(REGIONS).sort((a,b)=>b[1].total-a[1].total).map(([id,r])=>`<li class="row"><button type="button" data-region="${id}">${esc(r.name)}</button><span><span class="v">${M(r.total)} M</span> <span class="small" style="margin:0">${nf1.format(r.share)}%</span></span><span class="bar"><i style="width:${100*r.total/rmax}%"></i></span></li>`).join('')}</ul>`;
     h += `<p class="small" style="margin:14px 0 8px">Fuera de las provincias</p><ul class="rows">${Object.values(OTHER).map(o=>`<li class="row"><button type="button" data-esp="${o.key}">${esc(SPECIAL[o.key].name)}</button><span><span class="v">${M(o.total)} M</span> <span class="small" style="margin:0">${pctOf(o.total,n.total)}</span></span><span class="bar"><i style="width:${100*o.total/rmax}%"></i></span></li>`).join('')}</ul></div>`;
     h += `<div class="sec"><h3>A dónde va</h3>${countryLine(PER.nat.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}${destRows(zoneEntries(n.z,n.total),n.total)}</div>`;
+    h += `</div>`;
   } else if(sel.type==='esp'){
     const o = OTHER[sel.id], s = SPECIAL[sel.id];
     let desc = s.desc;
     if(sel.id==='EXTPLAT' && PER.split) desc += ` En este semestre: ${M(PER.split.EXT[0])} M de origen extranjero y ${M(PER.split.PLAT[0])} M de plataforma continental.`;
-    h += `<p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">·</span>Fuera de las provincias<span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(s.name)}</h2>`;
+    h += `<div class="panel-main"><p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">·</span>Fuera de las provincias<span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(s.name)}</h2>`;
     h += `<div class="big"><span class="n">${M(o.total)}</span><span class="u">millones de USD</span></div>`;
     h += `<p class="facts">${varText(o.var)} ${pctOf(o.total,NATION.total)} del total nacional.</p>`;
     h += `<p class="desc">${esc(desc)}</p>`;
     h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(o.r,o.total)}${prodList(o.p,o.total)}${confNote(o.k,o.total)}</div>`;
     h += evoBlock(sel.id);
-    h += `<div class="sec"><h3>A dónde va</h3>${countryLine(o.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}${destRows(zoneEntries(o.z,o.total),o.total)}</div>`;
+    h += `<div class="sec"><h3>A dónde va</h3>${countryLine(o.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}${destRows(zoneEntries(o.z,o.total),o.total)}</div></div>`;
   } else if(sel.type==='region'){
     const r = REGIONS[sel.id];
-    h += `<p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(r.name)}</h2>`;
+    h += `<div class="panel-main"><p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(r.name)}</h2>`;
     h += `<div class="big"><span class="n">${M(r.total)}</span><span class="u">millones de USD</span></div>`;
     h += `<p class="facts">${varText(r.var)} ${nf1.format(r.share)}% del total nacional.</p>`;
     h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(r.r,r.total)}${prodList(r.prods,r.total)}${confNote(r.k,r.total)}</div>`;
     h += evoBlock('R:'+sel.id);
+    h += `</div>`;
     const provs = REG_ISOS[sel.id].map(i=>P[i]).sort((a,b)=>b.total-a.total);
     const pmax = provs[0].total || 1;
+    h += `<div class="pair">`;
     h += `<div class="sec"><h3>Provincias</h3><ul class="rows">${provs.map(p=>`<li class="row"><button type="button" data-prov="${p.iso}">${esc(p.name)}</button><span><span class="v">${M(p.total)} M</span> <span class="small" style="margin:0">${pctOf(p.total,r.total)}</span></span><span class="bar"><i style="width:${100*p.total/pmax}%"></i></span></li>`).join('')}</ul></div>`;
     h += `<div class="sec"><h3>A dónde va</h3>${countryLine(r.partners,'Principales países')}${destRows(zoneEntries(r.z,r.total),r.total)}</div>`;
+    h += `</div>`;
   } else {
     const p = P[sel.id], r = REGIONS[p.reg];
     const rank = Object.values(P).filter(q=>q.total>p.total).length + 1;
-    h += `<p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">/</span><button class="linkbtn" type="button" data-region="${p.reg}">${esc(r.name)}</button><span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(p.name)}</h2>`;
+    h += `<div class="panel-main"><p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">/</span><button class="linkbtn" type="button" data-region="${p.reg}">${esc(r.name)}</button><span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(p.name)}</h2>`;
     h += `<div class="big"><span class="n">${M(p.total)}</span><span class="u">millones de USD</span></div>`;
     h += `<p class="facts">${varText(p.var)} ${p.share>=0.1?nf1.format(p.share)+'%':'Menos del 0,1%'} del total nacional, puesto ${rank} de 24.</p>`;
     h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(p.r,p.total)}${prodList(p.p,p.total)}${confNote(p.k,p.total)}</div>`;
     h += evoBlock(p.iso);
-    h += `<div class="sec"><h3>A dónde va</h3>${countryLine(p.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}${destRows(zoneEntries(p.z,p.total),p.total)}</div>`;
+    h += `<div class="sec"><h3>A dónde va</h3>${countryLine(p.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}${destRows(zoneEntries(p.z,p.total),p.total)}</div></div>`;
   }
   el.innerHTML = h;
   el.querySelectorAll('[data-region]').forEach(b=>b.addEventListener('click',()=>select({type:'region',id:b.dataset.region})));

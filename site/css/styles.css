@@ -119,6 +119,10 @@ select{
 button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 .layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:clamp(18px,3vw,44px);align-items:start}
+.panel{display:contents}
+.panel-main{grid-column:2;padding-top:4px}
+.pair{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);column-gap:clamp(18px,3vw,44px);align-items:start}
+.pair>.sec{margin-top:0}
 .viz{position:relative}
 .viz svg{display:block;width:100%;height:auto;overflow:visible}
 .howto{font-size:14px;color:var(--muted);margin:2px 0 0;max-width:70ch}
@@ -238,9 +242,14 @@ footer a{color:var(--flow-strong)}
 .narrow .legend-t,.narrow .legend-title,.narrow .origin-lbl{font-size:21px}
 @media (max-width:900px){
   .layout{grid-template-columns:1fr}
+  .panel-main,.pair{grid-column:1}
+  .pair{grid-template-columns:1fr 1fr}
   .big .n{font-size:40px}
   select{min-width:0;width:100%}
   .ctl{flex:1 1 260px}
+}
+@media (max-width:700px){
+  .pair{grid-template-columns:1fr}
 }
 
 @media (prefers-reduced-motion:reduce){
