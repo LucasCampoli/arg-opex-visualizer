@@ -418,7 +418,7 @@ function zoneEntries(z, base){
 }
 function countryLine(list, label){
   if(!list || !list.length) return '';
-  return `<p class="small" style="margin:-4px 0 12px">${label}: ${list.map(c=>`${esc(c[0])} ${M(c[1])} M`).join(', ')}.</p>`;
+  return `<p class="small" style="margin:12px 0 0">${label}: ${list.map(c=>`${esc(c[0])} ${M(c[1])} M`).join(', ')}.</p>`;
 }
 function confNote(k, total){
   if(!(k>0.5)) return '';
@@ -479,7 +479,7 @@ function renderPanel(){
     h += `<div class="pair">`;
     h += `<div class="sec"><h3>De dónde sale</h3><ul class="rows">${Object.entries(REGIONS).sort((a,b)=>b[1].total-a[1].total).map(([id,r])=>`<li class="row"><button type="button" data-region="${id}">${esc(r.name)}</button><span><span class="v">${M(r.total)} M</span> <span class="small" style="margin:0">${nf1.format(r.share)}%</span></span><span class="bar"><i style="width:${100*r.total/rmax}%"></i></span></li>`).join('')}</ul>`;
     h += `<p class="small" style="margin:14px 0 8px">Fuera de las provincias</p><ul class="rows">${Object.values(OTHER).map(o=>`<li class="row"><button type="button" data-esp="${o.key}">${esc(SPECIAL[o.key].name)}</button><span><span class="v">${M(o.total)} M</span> <span class="small" style="margin:0">${pctOf(o.total,n.total)}</span></span><span class="bar"><i style="width:${100*o.total/rmax}%"></i></span></li>`).join('')}</ul></div>`;
-    h += `<div class="sec"><h3>A dónde va</h3>${countryLine(PER.nat.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}${destRows(zoneEntries(n.z,n.total),n.total)}</div>`;
+    h += `<div class="sec"><h3>A dónde va</h3>${destRows(zoneEntries(n.z,n.total),n.total)}${countryLine(PER.nat.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}</div>`;
     h += `</div>`;
   } else if(sel.type==='esp'){
     const o = OTHER[sel.id], s = SPECIAL[sel.id];
@@ -491,7 +491,7 @@ function renderPanel(){
     h += `<p class="desc">${esc(desc)}</p>`;
     h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(o.r,o.total)}${prodList(o.p,o.total)}${confNote(o.k,o.total)}</div>`;
     h += evoBlock(sel.id);
-    h += `<div class="sec"><h3>A dónde va</h3>${countryLine(o.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}${destRows(zoneEntries(o.z,o.total),o.total)}</div></div>`;
+    h += `<div class="sec"><h3>A dónde va</h3>${destRows(zoneEntries(o.z,o.total),o.total)}${countryLine(o.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}</div></div>`;
   } else if(sel.type==='region'){
     const r = REGIONS[sel.id];
     h += `<div class="panel-main"><p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(r.name)}</h2>`;
@@ -504,7 +504,7 @@ function renderPanel(){
     const pmax = provs[0].total || 1;
     h += `<div class="pair">`;
     h += `<div class="sec"><h3>Provincias</h3><ul class="rows">${provs.map(p=>`<li class="row"><button type="button" data-prov="${p.iso}">${esc(p.name)}</button><span><span class="v">${M(p.total)} M</span> <span class="small" style="margin:0">${pctOf(p.total,r.total)}</span></span><span class="bar"><i style="width:${100*p.total/pmax}%"></i></span></li>`).join('')}</ul></div>`;
-    h += `<div class="sec"><h3>A dónde va</h3>${countryLine(r.partners,'Principales países')}${destRows(zoneEntries(r.z,r.total),r.total)}</div>`;
+    h += `<div class="sec"><h3>A dónde va</h3>${destRows(zoneEntries(r.z,r.total),r.total)}${countryLine(r.partners,'Principales países')}</div>`;
     h += `</div>`;
   } else {
     const p = P[sel.id], r = REGIONS[p.reg];
@@ -514,7 +514,7 @@ function renderPanel(){
     h += `<p class="facts">${varText(p.var)} ${p.share>=0.1?nf1.format(p.share)+'%':'Menos del 0,1%'} del total nacional, puesto ${rank} de 24.</p>`;
     h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(p.r,p.total)}${prodList(p.p,p.total)}${confNote(p.k,p.total)}</div>`;
     h += evoBlock(p.iso);
-    h += `<div class="sec"><h3>A dónde va</h3>${countryLine(p.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}${destRows(zoneEntries(p.z,p.total),p.total)}</div></div>`;
+    h += `<div class="sec"><h3>A dónde va</h3>${destRows(zoneEntries(p.z,p.total),p.total)}${countryLine(p.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}</div></div>`;
   }
   el.innerHTML = h;
   el.querySelectorAll('[data-region]').forEach(b=>b.addEventListener('click',()=>select({type:'region',id:b.dataset.region})));
