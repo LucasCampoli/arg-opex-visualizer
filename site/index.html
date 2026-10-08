@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Exportaciones por provincia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="is-loading">
+<div class="wrap">
+  <header>
+    <h1>Qué exporta cada provincia y hacia dónde va</h1>
+    <p class="lede" id="lede">Cargando datos…</p>
+  </header>
+
+  <div class="yearbar" role="group" aria-label="Período">
+    <span class="yr" id="year-out" aria-hidden="true">2025</span>
+    <button type="button" class="btn" id="prev" aria-label="Período anterior">‹</button>
+    <div class="slider">
+      <label for="year" class="lbl" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Año</label>
+      <input type="range" id="year" min="0" max="24" step="1" value="23">
+      <div class="ticks" aria-hidden="true"><span>2002</span><span>2010</span><span>2018</span><span>2025</span><span>1er sem. 26</span></div>
+    </div>
+    <button type="button" class="btn" id="next" aria-label="Período siguiente">›</button>
+    <button type="button" class="btn" id="play" aria-pressed="false">▶ Reproducir</button>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <label for="pick">Ver</label>
+      <select id="pick"></select>
+    </div>
+    <div class="ctl">
+      <span class="lbl" id="colorby-lbl">Colorear el mapa por</span>
+      <div class="seg" role="group" aria-labelledby="colorby-lbl" id="colorby"></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="viz" id="viz">
+      <svg id="svg" viewBox="0 0 900 1000" aria-label="Mapa de Argentina con las exportaciones por provincia y bandas hacia los mercados de destino">
+        <defs>
+          <linearGradient id="lg" x1="0" x2="1" y1="0" y2="0"></linearGradient>
+          <linearGradient id="fadeR" gradientUnits="userSpaceOnUse" x1="380" y1="0" x2="470" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+          <linearGradient id="fadeT" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="60"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+          <mask id="mR" maskUnits="userSpaceOnUse" x="-60" y="-60" width="1020" height="1120"><rect x="-60" y="-60" width="1020" height="1120" fill="url(#fadeR)"/></mask>
+          <mask id="mT" maskUnits="userSpaceOnUse" x="-60" y="-60" width="1020" height="1120"><rect x="-60" y="-60" width="1020" height="1120" fill="url(#fadeT)"/></mask>
+        </defs>
+        <g mask="url(#mT)"><g mask="url(#mR)">
+          <g id="g-grat"></g>
+          <g id="g-neigh"></g>
+        </g></g>
+        <g id="g-prov"></g>
+        <g id="g-caba"></g>
+        <g id="g-legend"></g>
+        <g id="g-flows" class="flows"></g>
+        <g id="g-origins"></g>
+        <g id="g-special"></g>
+        <g id="g-nodes"></g>
+      </svg>
+      <p class="howto">El color muestra cuánto exporta cada provincia. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Tocá un destino o pasá el cursor encima para aislar sus bandas.</p>
+      <div class="tip" id="tip" role="status" aria-live="polite"></div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <footer>
+    <p>Fuentes: INDEC, microdatos de <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-2-79">Origen provincial de las exportaciones (OPEX)</a>, años 2002 a 2025, y <a href="https://www.indec.gob.ar/ftp/cuadros/economia/opex_anexo_cuadros_02_09_26.xls">anexo de cuadros del primer semestre de 2026</a> (septiembre de 2026). Millones de USD FOB corrientes; las cifras de los últimos años son provisorias. Los totales por provincia coinciden con la serie anual oficial del INDEC.</p>
+    <p>Destinos: para los años completos, las zonas se arman sumando los países de destino según las definiciones del INDEC (Mercosur, resto de ALADI, USMCA, Unión Europea de 27 miembros, etc.), con la misma composición para toda la serie; pueden diferir levemente de los cuadros publicados en cada año. Además, lo que el INDEC agrupa como «resto del mundo» se abrió en Centroamérica y Caribe, Resto de Europa, África subsahariana, Resto de Asia y «Sin país declarado»: envíos que la propia base registra sin país (solo el continente), que no se pueden asignar. Para el primer semestre de 2026 se usa la matriz provincia por zona del anexo, que no abre el resto del mundo.</p>
+    <p>Productos: desde 2018 el INDEC agrupa una parte de las exportaciones como «confidencial» para proteger datos de empresas individuales (por ejemplo, buena parte de la minería). Ese monto está incluido en los totales, rubros y destinos, pero no en el ranking de productos.</p>
+    <p>Rubros: PP, productos primarios; MOA, manufacturas de origen agropecuario; MOI, manufacturas de origen industrial; CyE, combustibles y energía.</p>
+    <p>Código y datos: <a href="https://github.com/LucasCampoli/arg-opex-visualizer">repositorio en GitHub</a>.</p>
+  </footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
