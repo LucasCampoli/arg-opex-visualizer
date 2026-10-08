@@ -167,7 +167,14 @@ venv.bak/
 .ropeproject
 
 # mkdocs/Zensical documentation
-/site
+# /site
+
+# Microdatos y anexo del INDEC: se usan en local y no se publican
+data/raw/*
+!data/raw/sources.yml
+
+# entorno local
+.venv/
 
 # mypy
 .mypy_cache/
