@@ -1,0 +1,76 @@
+confidential:
+  - "19899"
+  - "29899"
+  - "39899"
+  - "49899"
+
+rename:
+  "212AE": Harina y pellets de soja
+  "212AB": Harina y pellets de girasol
+  "107A": Poroto de soja
+  "107B": Semilla de girasol
+  "107D": Maní
+  "208AA": Aceite de soja
+  "208AE": Aceite de girasol
+  "313BB": Vehículos automotores
+  "313BC": Autopartes
+  "310A": "Oro, plata y piedras preciosas"
+  "201AA": Carne bovina
+  "201AE": Carne de ave
+  "102B": "Mariscos (langostino, calamar)"
+  "302JA": Biodiésel
+  "404A": Gas de petróleo
+  "402Z": Otros carburantes
+  "111": "Minerales metalíferos (cobre)"
+  "111A": Mineral de cobre
+  "111BA": Mineral de plata
+  "203A": Leche en polvo y preparada
+  "311AE": Tubos de acero
+  "311C": Aluminio
+  "105C": "Cítricos (limón)"
+  "211A": Vino
+  "214B": Cueros curtidos
+  "302F": Cosmética y perfumería
+  "312AL": Otras máquinas y aparatos mecánicos
+  "312B": Máquinas y aparatos eléctricos
+  "303": Plásticos y sus manufacturas
+  "210Z": Otros preparados de hortalizas y frutas
+  "212Z": Otros alimentos para animales
+  "207Z": Otros productos de molinería
+  "302JZ": Otros productos químicos
+  "302J": Productos químicos diversos
+  "211Z": Otras bebidas
+  "19899": Primarios confidenciales*
+  "29899": Agroindustria confidencial*
+  "39899": Industria confidencial*
+  "49899": Energía confidencial*
+  "312AA": Motores y sus partes
+  "210D": Jugos de frutas
+  "209Z": Otros azúcares y confituras
+  "201AZ": Otras carnes
+  "306A": Papel y cartón
+  "306C": Pasta de papel
+  "213A": Extracto de quebracho (tanino)
+  "206B": Yerba mate
+  "206A": Té
+  "108A": Tabaco
+  "104C": "Legumbres (porotos, garbanzos)"
+  "105B": Peras
+  "105A": Manzanas
+  "106ZF": Arroz
+  "106ZB": Cebada
+  "106A": Trigo
+  "106B": Maíz
+  "106C": Sorgo
+  "401": Petróleo crudo
+  "402A": Naftas
+  "402B": Gasolinas
+  "314A": Aeronaves y partes
+  "302C": Productos farmacéuticos
+  "302B": Químicos orgánicos
+  "302A": Químicos inorgánicos (incl. carbonato de litio)
+  "202AA": Filetes de pescado
+  "102A": Pescados
+  "203C": Quesos
+  "105D": Uva de mesa
+  "205": Frutas secas

@@ -1,0 +1,114 @@
+# Código INDEC (PCIA) → ISO 3166-2, nombre y región.
+# El orden es el del dashboard. Los nombres oficiales se usan para
+# cruzar el anexo (normalizados, sin tildes).
+provincias:
+  BA:
+    iso: AR-B
+    nombre: Buenos Aires
+    region: pampeana
+  CF:
+    iso: AR-C
+    nombre: Ciudad Autónoma de Buenos Aires
+    region: pampeana
+  OB:
+    iso: AR-X
+    nombre: Córdoba
+    region: pampeana
+  ER:
+    iso: AR-E
+    nombre: Entre Ríos
+    region: pampeana
+  LP:
+    iso: AR-L
+    nombre: La Pampa
+    region: pampeana
+  SF:
+    iso: AR-S
+    nombre: Santa Fe
+    region: pampeana
+  CT:
+    iso: AR-U
+    nombre: Chubut
+    region: patagonia
+  NE:
+    iso: AR-Q
+    nombre: Neuquén
+    region: patagonia
+  RN:
+    iso: AR-R
+    nombre: Río Negro
+    region: patagonia
+  AZ:
+    iso: AR-Z
+    nombre: Santa Cruz
+    region: patagonia
+  TF:
+    iso: AR-V
+    nombre: "Tierra del Fuego, Antártida e Islas del Atlántico Sur"
+    region: patagonia
+  CA:
+    iso: AR-K
+    nombre: Catamarca
+    region: noa
+  JU:
+    iso: AR-Y
+    nombre: Jujuy
+    region: noa
+  LR:
+    iso: AR-F
+    nombre: La Rioja
+    region: noa
+  SA:
+    iso: AR-A
+    nombre: Salta
+    region: noa
+  SE:
+    iso: AR-G
+    nombre: Santiago del Estero
+    region: noa
+  TN:
+    iso: AR-T
+    nombre: Tucumán
+    region: noa
+  ZA:
+    iso: AR-M
+    nombre: Mendoza
+    region: cuyo
+  NN:
+    iso: AR-J
+    nombre: San Juan
+    region: cuyo
+  SL:
+    iso: AR-D
+    nombre: San Luis
+    region: cuyo
+  HA:
+    iso: AR-H
+    nombre: Chaco
+    region: nea
+  RR:
+    iso: AR-W
+    nombre: Corrientes
+    region: nea
+  FO:
+    iso: AR-P
+    nombre: Formosa
+    region: nea
+  MI:
+    iso: AR-N
+    nombre: Misiones
+    region: nea
+
+# Orígenes que no son provincias.
+especiales:
+  EX: EXT
+  PC: PLAT
+  IN: IND
+
+# Etiqueta normalizada del anexo → id de región.
+regiones_anexo:
+  pampeana: pampeana
+  patagonia: patagonia
+  noroeste (noa): noa
+  cuyo: cuyo
+  noreste (nea): nea

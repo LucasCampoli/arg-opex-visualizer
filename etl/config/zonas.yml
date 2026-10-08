@@ -1,0 +1,45 @@
+# Orden del vector z[] de cada origen. No reordenar: el dashboard
+# indexa las zonas por esta posición.
+order:
+  - mercosur
+  - aladi
+  - usmca
+  - caribe
+  - ue
+  - eur_otros
+  - mo
+  - magreb
+  - sacu
+  - africa
+  - china
+  - india
+  - asean
+  - asia_otros
+  - oceania
+  - sindecl
+  - resto
+
+# Código de país INDEC → zona. Un código listado acá gana sobre el prefijo.
+codes:
+  mercosur: [203, 221, 225, 226, 280, 281, 282, 283, 284, 285, 286, 287, 289, 290, 291]
+  aladi: [208, 222, 202, 205, 207, 210, 220, 260, 261, 270, 271, 272]
+  usmca: [212, 204, 218, 223, 231, 511]
+  ue: [423, 410, 438, 417, 424, 412, 406, 409, 415, 413, 425, 441, 427, 407, 411, 429, 442, 447, 451, 420, 435, 405, 414, 449, 440, 448, 419, 241, 242, 243, 244, 245, 230, 147, 229, 146, 228]
+  china: [310, 341, 344]
+  india: [315]
+  asean: [337, 316, 326, 335, 312, 333, 304, 306, 346, 324]
+  mo: [302, 318, 331, 319, 321, 348, 317, 334, 325, 328, 323, 322, 303, 357]
+  magreb: [102, 113, 127, 141, 123, 129]
+  sacu: [159, 103, 121, 158, 137]
+  oceania: [501, 504, 512, 513, 505, 520, 518, 506, 519, 521, 517, 507, 509]
+  sindecl: [198, 298, 398, 498, 598, 998, 996, 262]
+
+# Si el código no está arriba, la zona sale del primer dígito.
+fallback_prefix:
+  "1": africa
+  "2": caribe
+  "3": asia_otros
+  "4": eur_otros
+  "5": oceania
+
+fallback_default: sindecl
