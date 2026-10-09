@@ -106,6 +106,10 @@ especiales:
   PC: PLAT
   IN: IND
 
+especiales_serie:
+  Extranjero y Plataforma Continental: EXTPLAT
+  Indeterminado: IND
+
 # Etiqueta normalizada del anexo → id de región.
 regiones_anexo:
   pampeana: pampeana

@@ -18,6 +18,7 @@ def validate(
     periods: dict[str, dict],
     unrounded: dict[int, float],
     anexo: Anexo | None,
+    sem: dict,
     country_codes: set[str],
 ) -> dict:
     errors: list[str] = []
@@ -40,12 +41,13 @@ def validate(
         if period["kind"] != "year":
             continue
         for origin, payload in period["o"].items():
-            gap = abs(sum(payload["z"]) - payload["t"])
-            if gap > 1.001:
-                zone_gaps += 1
-                errors.append(
-                    f"{key} {origin}: las zonas suman {sum(payload['z']):.1f} y el total es {payload['t']:.1f}"
-                )
+            for measure, block in payload.items():
+                zoned = sum(values[0] for values in block["z"])
+                if abs(zoned - block["r"][0]) > 1.001:
+                    zone_gaps += 1
+                    errors.append(
+                        f"{key} {origin} {measure}: las zonas suman {zoned:.1f} y el total es {block['r'][0]:.1f}"
+                    )
 
     if anexo is not None:
         for iso, by_year in anexo.official_annual.items():
@@ -55,10 +57,16 @@ def validate(
                     anexo_diffs += 1
                     errors.append(f"DIFF {iso} {year}: no está en los microdatos")
                     continue
-                mine = period["o"][iso]["t"]
+                mine = period["o"][iso]["usd"]["r"][0]
                 if abs(mine - official) > max(1.0, 0.005 * abs(official)):
                     anexo_diffs += 1
                     errors.append(f"DIFF {iso} {year} {mine} {round(official, 1)}")
+
+    if anexo is not None:
+        total = sum(origin["usd"]["r"][0] for origin in anexo.period["o"].values())
+        monthly = sem["usd"]["N"].get(str(anexo.year), [0])[0]
+        if abs(monthly - total) > 0.01 * total:
+            errors.append(f"La serie mensual suma {monthly:.1f} en el semestre y el anexo {total:.1f}")
 
     for code in sorted(country_codes):
         zone = zone_of(code)
@@ -66,7 +74,7 @@ def validate(
             errors.append(f"El país {code} no cae en ninguna zona (obtuve {zone!r})")
 
     totals = {
-        key: round(sum(origin["t"] for origin in period["o"].values()), 1)
+        key: round(sum(origin["usd"]["r"][0] for origin in period["o"].values()), 1)
         for key, period in periods.items()
     }
     report = {

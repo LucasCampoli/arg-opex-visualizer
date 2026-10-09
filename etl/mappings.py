@@ -10,6 +10,8 @@ from pathlib import Path
 import yaml
 
 CONFIG_DIR = Path(__file__).resolve().parent / "config"
+MEASURES = ("usd", "tn")
+RUBROS = ("PP", "MOA", "MOI", "CyE")
 
 
 def norm_name(value: object) -> str:
@@ -72,6 +74,7 @@ def load_config() -> dict:
         "regions": regions,
         "name_to_iso": name_to_iso,
         "region_labels": {norm_name(k): str(v) for k, v in provincias["regiones_anexo"].items()},
+        "series_origins": {norm_name(k): str(v) for k, v in provincias["especiales_serie"].items()},
         "icons": {norm_code(k): str(v) for k, v in productos["iconos"].items()},
         "subrubros": {norm_name(k): norm_code(v) for k, v in productos["subrubros"].items()},
         "zone_order": zone_order,
@@ -99,6 +102,13 @@ def zone_of(country_code: object) -> str:
     return cfg["fallback_prefix"].get(code[0], cfg["fallback_default"])
 
 
+def rubro_of(code: str) -> int | None:
+    digit = code[:1]
+    if not digit.isdigit() or not 1 <= int(digit) <= len(RUBROS):
+        return None
+    return int(digit)
+
+
 def icon_of(code: str) -> str:
     icons = load_config()["icons"]
     prefix = next(code[:size] for size in range(len(code), 0, -1) if code[:size] in icons)
@@ -110,6 +120,15 @@ def subrubro_code(name: object) -> str:
     if code is None:
         raise ValueError(f"Subrubro sin código en productos.yml: {name!r}")
     return code
+
+
+def vector() -> list[float]:
+    return [0.0] * (len(RUBROS) + 1)
+
+
+def put(values: list[float], rubro: int, amount: float) -> None:
+    values[0] += amount
+    values[rubro] += amount
 
 
 def province_names() -> dict[str, str]:
