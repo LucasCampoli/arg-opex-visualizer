@@ -483,7 +483,7 @@ function showTip(e,html){
   const r = viz.getBoundingClientRect();
   let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
   const tw = tip.offsetWidth, th = tip.offsetHeight;
-  if(x + tw > r.width) x = e.clientX - r.left - tw - 14;
+  if(e.clientX + 14 + tw > document.documentElement.clientWidth) x = e.clientX - r.left - tw - 14;
   if(y + th > r.height) y = e.clientY - r.top - th - 14;
   tip.style.left = Math.max(0,x)+'px'; tip.style.top = Math.max(0,y)+'px';
 }
