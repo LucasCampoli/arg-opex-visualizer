@@ -34,8 +34,12 @@
       <select id="pick"></select>
     </div>
     <div class="ctl">
-      <span class="lbl" id="colorby-lbl">Colorear el mapa por</span>
-      <div class="seg" role="group" aria-labelledby="colorby-lbl" id="colorby"></div>
+      <span class="lbl" id="tipo-lbl">Tipo de producto</span>
+      <div class="seg" role="group" aria-labelledby="tipo-lbl" id="tipo"></div>
+    </div>
+    <div class="ctl">
+      <span class="lbl" id="unit-lbl">Unidad</span>
+      <div class="seg" role="group" aria-labelledby="unit-lbl" id="unit"></div>
     </div>
   </div>
 
@@ -60,8 +64,9 @@
         <g id="g-origins"></g>
         <g id="g-special"></g>
         <g id="g-nodes"></g>
+        <g id="g-note"></g>
       </svg>
-      <p class="howto">El color muestra cuánto exporta cada provincia. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Tocá un destino o pasá el cursor encima para aislar sus bandas.</p>
+      <p class="howto">El color muestra cuánto exporta cada provincia del tipo de producto elegido, en dólares o en toneladas. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Tocá un destino o pasá el cursor encima para aislar sus bandas.</p>
       <div class="tip" id="tip" role="status" aria-live="polite"></div>
     </div>
     <aside class="panel" id="panel" aria-live="polite"></aside>
@@ -69,7 +74,7 @@
 
   <footer>
     <div>
-      <p>Fuentes: INDEC, microdatos de <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-2-79">Origen provincial de las exportaciones (OPEX)</a>, años 2002 a 2025, y <a href="https://www.indec.gob.ar/ftp/cuadros/economia/opex_anexo_cuadros_02_09_26.xls">anexo de cuadros del primer semestre de 2026</a> (septiembre de 2026). Millones de USD FOB corrientes; las cifras de los últimos años son provisorias. Los totales por provincia coinciden con la serie anual oficial del INDEC.</p>
+      <p>Fuentes: INDEC, microdatos de <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-2-79">Origen provincial de las exportaciones (OPEX)</a>, años 2002 a 2025, y <a href="https://www.indec.gob.ar/ftp/cuadros/economia/opex_anexo_cuadros_02_09_26.xls">anexo de cuadros del primer semestre de 2026</a> (septiembre de 2026). Millones de USD FOB corrientes; las cifras de los últimos años son provisorias. Las toneladas son de peso neto; las del semestre salen de la <a href="https://comex.indec.gob.ar/#/database">serie mensual del OPEX</a>, que no abre destinos ni productos. Los totales por provincia coinciden con la serie anual oficial del INDEC.</p>
       <p>Productos: desde 2018 el INDEC agrupa una parte de las exportaciones como «confidencial» para proteger datos de empresas individuales (por ejemplo, buena parte de la minería). Ese monto está incluido en los totales, rubros y destinos, pero no en el ranking de productos.</p>
       <p>Rubros: PP, productos primarios; MOA, manufacturas de origen agropecuario; MOI, manufacturas de origen industrial; CyE, combustibles y energía.</p>
       <p>Código y datos: <a href="https://github.com/LucasCampoli/arg-opex-visualizer">repositorio en GitHub</a>.</p>

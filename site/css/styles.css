@@ -178,6 +178,7 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 .flow.nd{fill:var(--nd);opacity:.28}
 .flows.focus .flow{opacity:.1}
 .flows.focus .flow.on{opacity:.75}
+.flow-note{font-size:17px;fill:var(--muted)}
 .origin{fill:var(--sea);stroke:var(--flow-strong);stroke-width:2;pointer-events:none}
 .origin-lbl{font-size:13px;fill:var(--muted);font-stretch:85%;pointer-events:none}
 .node-bar{fill:var(--flow-strong)}
@@ -221,6 +222,7 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 .rubros .sw{width:10px;height:10px;border-radius:2px;align-self:center}
 .rubros .v{font-weight:600}
 .rubros .p{color:var(--muted);min-width:4.2ch;text-align:right}
+.rubros li.off,.stack span.off{opacity:.35}
 .hl{margin:14px 0 0;padding:0 0 0 18px;font-size:15px;display:grid;gap:6px}
 .hl li::marker{color:var(--muted)}
 .rows{list-style:none;margin:0;padding:0;display:grid;gap:9px}
@@ -241,6 +243,7 @@ footer a{color:var(--flow-strong)}
 .narrow .node-val{display:none}
 .narrow .grp{font-size:22px}
 .narrow .legend-t,.narrow .legend-title,.narrow .origin-lbl{font-size:21px}
+.narrow .flow-note{font-size:24px}
 @media (max-width:900px){
   .layout{grid-template-columns:1fr}
   .panel-main,.pair{grid-column:1}

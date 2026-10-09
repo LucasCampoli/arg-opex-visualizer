@@ -6,7 +6,11 @@ const RUBROS = [
   {id:'MOI', name:'Manufacturas de origen industrial', short:'Industria (MOI)', css:'--moi'},
   {id:'CyE', name:'Combustibles y energía', short:'Energía (CyE)', css:'--cye'}
 ];
-const RIDX = {PP:0,MOA:1,MOI:2,CyE:3};
+const TIPOS = [{id:'total', name:'Todos los rubros', short:'Todos'}, ...RUBROS];
+const UNITS = [
+  {id:'usd', short:'USD', long:'millones de USD', abbr:'M', lede:'millones de dólares corrientes', gap:'por rubro', note:'Dólares corrientes, sin ajustar por inflación.'},
+  {id:'tn', short:'Toneladas', long:'miles de toneladas', abbr:'mil t', lede:'miles de toneladas de peso neto', gap:'en toneladas', note:'Toneladas de peso neto.'}
+];
 const ZONES = [
   {id:'mercosur', name:'Mercosur', group:'América', members:'Brasil, Paraguay, Uruguay y Venezuela, con sus zonas francas'},
   {id:'aladi', name:'Chile, Perú y otros', group:'América', members:'Resto de ALADI: Chile, Perú, Bolivia, Colombia, Cuba, Ecuador y Panamá'},
@@ -46,6 +50,13 @@ const DUR = () => reduceMotion.matches ? 0 : 420;
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const sum = a => a.reduce((s,x)=>s+x,0);
 const isSem = k => META.kinds[k]==='sem';
+const U = () => UNITS[state.unit];
+const byTipo = v => v ? v[state.tipo] : null;
+const fmt = v => `${M(v)} ${U().abbr}`;
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const unitText = () => U().long + (state.tipo ? ' en ' + TIPOS[state.tipo].name.toLowerCase() : '');
+const gapText = what => `Para el ${META.semester.lede}, el INDEC no publica ${what} ${U().gap}.`;
+const topProducts = (list, n) => (list||[]).filter(p=>!state.tipo || p[1]===state.tipo).slice(0,n);
 
 /* Orígenes que no son provincias */
 const SPECIAL = {
@@ -61,55 +72,55 @@ const SPECIAL = {
 const specKeys = pk => Object.keys(DATA.periods[pk].o).filter(k=>!DATA.names[k]);
 
 /* totales para cualquier clave: iso | R:region | N | PLAT | EXT | EXTPLAT | IND */
-function originKeys(key, pk){
-  if(key==='N') return [...ISOS, ...specKeys(pk||state.period)];
-  if(key.startsWith('R:')) return REG_ISOS[key.slice(2)];
-  return [key];
-}
-function totalOf(pk,key){
-  const row = SERIES.total[key];
-  if(row && row[pk]!=null) return row[pk];
-  const period = DATA.periods[pk];
-  if(!period) return 0;
-  return sum(originKeys(key,pk).map(k=>period.o[k]?.t||0));
-}
+function totalOf(pk,key){ return SERIES[U().id][key]?.[pk]?.[state.tipo] ?? 0; }
 function varOf(pk,key){
   if(isSem(pk)){
-    const s = DATA.sem[key];
+    const s = DATA.sem[U().id][key];
     const y = String(META.semester.year), prev = String(META.semester.previousYear);
-    return s && s[prev] ? 100*(s[y]/s[prev]-1) : null;
+    return s && s[prev]?.[state.tipo] ? 100*(s[y][state.tipo]/s[prev][state.tipo]-1) : null;
   }
   const i = ORDER.indexOf(pk); if(i<=0) return null;
   const prev = totalOf(ORDER[i-1],key); return prev ? 100*(totalOf(pk,key)/prev-1) : null;
 }
 function seriesOf(pk,key){
   if(isSem(pk)){
-    const s = DATA.sem[key]||{};
+    const s = DATA.sem[U().id][key]||{};
     const ySem = String(META.semester.year);
-    return Object.keys(s).sort().map(y=>({k:y===ySem?META.semester.id:null, lbl:y, v:s[y]}));
+    return Object.keys(s).sort().map(y=>({k:y===ySem?META.semester.id:null, lbl:y, v:s[y][state.tipo]}));
   }
   return ORDER.filter(k=>!isSem(k)).map(k=>({k, lbl:k, v:totalOf(k,key)}));
 }
 
 /* ---------- Vista del período elegido ---------- */
 let P, REGIONS, NATION, OTHER, PER;
+const addRows = rows => rows[0].map((_,j)=>rows.some(r=>r[j]==null) ? null : sum(rows.map(r=>r[j])));
+const zoneRows = rows => rows && rows.every(v=>v[state.tipo]!=null) ? Object.fromEntries(ZKEYS.map((z,i)=>[z,rows[i]])) : null;
+function originView(o){
+  const b = o[U().id];
+  return {total:byTipo(b.r), r:b.r.slice(1), z:zoneRows(b.z), p:b.p, c:b.c, k:byTipo(b.k)};
+}
+function merged(views){
+  const z = views.every(v=>v.z) ? Object.fromEntries(ZKEYS.map(k=>[k, addRows(views.map(v=>v.z[k]))])) : null;
+  return {r:addRows(views.map(v=>v.r)), z};
+}
+function ranking(rank){
+  const b = rank?.[U().id] || {};
+  return {p:b.p, c:b.c, k:byTipo(b.k)};
+}
 function buildView(pk){
   PER = DATA.periods[pk];
-  const zobj = arr => Object.fromEntries(ZKEYS.map((z,i)=>[z,arr[i]]));
   P = {};
-  ISOS.forEach(i=>{ const o = PER.o[i]; P[i] = {iso:i, name:DATA.names[i], reg:DATA.reg[i], total:o.t, r:o.r, z:zobj(o.z), p:o.p, c:o.c, k:o.k||0, var:varOf(pk,i)}; });
-  NATION = {name:'Todo el país', total:totalOf(pk,'N'), var:varOf(pk,'N'), r:[0,0,0,0], z:{}};
-  originKeys('N',pk).forEach(k=>{ PER.o[k].r.forEach((v,j)=>NATION.r[j]+=v); PER.o[k].z.forEach((v,j)=>NATION.z[ZKEYS[j]]=(NATION.z[ZKEYS[j]]||0)+v); });
+  ISOS.forEach(i=>{ P[i] = {iso:i, name:DATA.names[i], reg:DATA.reg[i], ...originView(PER.o[i]), var:varOf(pk,i)}; });
+  OTHER = Object.fromEntries(specKeys(pk).map(k=>[k,{key:k, name:SPECIAL[k].name, ...originView(PER.o[k]), var:varOf(pk,k)}]));
+  NATION = {name:'Todo el país', total:totalOf(pk,'N'), var:varOf(pk,'N'), ...merged([...Object.values(P), ...Object.values(OTHER)]), ...ranking(PER.nat)};
   REGIONS = {};
   Object.keys(REGNAMES).forEach(rg=>{
     const ps = REG_ISOS[rg].map(i=>P[i]);
-    const r = [0,0,0,0], z = {};
-    ps.forEach(p=>{ p.r.forEach((v,j)=>r[j]+=v); ZKEYS.forEach(k=>z[k]=(z[k]||0)+p.z[k]); });
     const total = sum(ps.map(p=>p.total));
-    REGIONS[rg] = {name:REGNAMES[rg], total, r, z, var:varOf(pk,'R:'+rg), share:100*total/NATION.total, partners:PER.reg[rg]?.c||[], prods:PER.reg[rg]?.p||[], k:PER.reg[rg]?.k||0};
+    REGIONS[rg] = {name:REGNAMES[rg], total, var:varOf(pk,'R:'+rg), share:100*total/NATION.total, ...merged(ps), ...ranking(PER.reg[rg])};
   });
   ISOS.forEach(i=>{ P[i].share = 100*P[i].total/NATION.total; });
-  OTHER = Object.fromEntries(specKeys(pk).map(k=>{ const o=PER.o[k]; return [k,{key:k, name:SPECIAL[k].name, total:o.t, r:o.r, z:zobj(o.z), p:o.p, c:o.c, k:o.k||0, var:varOf(pk,k)}]; }));
+  REG_C = Object.fromEntries(Object.keys(REGIONS).map(r=>[r,weightedCentroid(REG_ISOS[r])]));
 }
 
 const svg = d3.select('#svg');
@@ -117,7 +128,7 @@ const tip = document.getElementById('tip');
 const viz = document.getElementById('viz');
 
 /* ---------- Estado ---------- */
-const state = {sel:{type:'pais',id:null}, metric:'total', period:null};
+const state = {sel:{type:'pais',id:null}, tipo:0, unit:0, period:null};
 
 /* ---------- Mapa base ---------- */
 function drawBase(){
@@ -141,36 +152,34 @@ function drawBase(){
     .on('pointerleave',hideTip);
 }
 
-function metricVal(p){ return state.metric==='total' ? p.total : p.r[RIDX[state.metric]]; }
 function provTip(p){
-  const v = metricVal(p);
   const vr = p.var==null ? '' : `<br><span class="s">${sgn(p.var)} ${isSem(state.period)?'frente al '+META.semester.compareShort:'frente al año anterior'}</span>`;
-  return `<b>${esc(p.name)}</b><br>${state.metric==='total'?'Exportó':esc(RUBROS.find(r=>r.id===state.metric).name)+':'} ${v>0?M(v)+' M':'sin exportaciones'}${vr}`;
+  return `<b>${esc(p.name)}</b><br>${state.tipo?esc(TIPOS[state.tipo].name)+':':'Exportó'} ${p.total>0?fmt(p.total):'sin exportaciones'}${vr}`;
 }
 
 /* ---------- Escala de color: fija para toda la serie, así los años se pueden comparar ---------- */
 let colorScale;
-function buildDomains(){
-  DOMAINS = {};
-  ['total',...RUBROS.map(r=>r.id)].forEach(m=>{
+function domain(){
+  const key = U().id + state.tipo;
+  if(!DOMAINS[key]){
     let lo=Infinity, hi=0;
     ORDER.forEach(k=>ISOS.forEach(i=>{
-      const cell = SERIES.province[i];
-      const v = m==='total' ? cell.t[k] : cell.r[k][RIDX[m]];
+      const v = SERIES[U().id][i][k][state.tipo];
       if(v>0){ lo=Math.min(lo,v); hi=Math.max(hi,v); }
     }));
-    DOMAINS[m] = [Math.max(1,lo), hi];
-  });
+    DOMAINS[key] = [Math.max(1,lo), hi];
+  }
+  return DOMAINS[key];
 }
 function buildScale(){
   const interp = d3.piecewise(d3.interpolateLab, [cssv('--ramp-0'), cssv('--ramp-1'), cssv('--ramp-2')]);
-  colorScale = d3.scaleSequentialLog(DOMAINS[state.metric], interp).clamp(true);
+  colorScale = d3.scaleSequentialLog(domain(), interp).clamp(true);
 }
 function paint(){
   buildScale();
   const zero = cssv('--zero');
-  provSel.transition().duration(DUR()/1.5).attr('fill',d=>{ const v=metricVal(P[d.iso]); return v>0 ? colorScale(v) : zero; });
-  provSel.attr('aria-label',d=>`${P[d.iso].name}: ${M(P[d.iso].total)} millones de USD`);
+  provSel.transition().duration(DUR()/1.5).attr('fill',d=>{ const v=P[d.iso].total; return v>0 ? colorScale(v) : zero; });
+  provSel.attr('aria-label',d=>`${P[d.iso].name}: ${M(P[d.iso].total)} ${U().long}`);
   drawLegend();
 }
 function drawLegend(){
@@ -178,8 +187,8 @@ function drawLegend(){
   const x0=narrow?226:250, w=narrow?230:180, y0=narrow?930:948;
   const lg = d3.select('#lg'); lg.selectAll('stop').data(d3.range(0,1.0001,0.1)).join('stop')
     .attr('offset',d=>d).attr('stop-color',d=>colorScale.interpolator()(d));
-  const title = state.metric==='total' ? 'Total exportado, millones de USD' : RUBROS.find(r=>r.id===state.metric).short + ', millones de USD';
-  g.append('text').attr('class','legend-title').attr('x',x0).attr('y',y0-(narrow?12:10)).text(narrow?'Millones de USD':title);
+  const title = `${state.tipo ? TIPOS[state.tipo].short : 'Total exportado'}, ${U().long}`;
+  g.append('text').attr('class','legend-title').attr('x',x0).attr('y',y0-(narrow?12:10)).text(narrow?cap(U().long):title);
   g.append('rect').attr('x',x0).attr('y',y0).attr('width',w).attr('height',9).attr('rx',2).attr('fill','url(#lg)');
   const [lo,hi] = colorScale.domain();
   const lx = d3.scaleLog([lo,hi],[x0,x0+w]);
@@ -205,7 +214,7 @@ function glyph(g, kind){
 }
 function specTip(k){
   const o = OTHER[k], s = SPECIAL[k];
-  return `<b>${esc(s.name)}</b><br>${M(o.total)} M, ${pctOf(o.total,NATION.total)} del total<br><span class="s">Tocá para ver qué exporta y a dónde</span>`;
+  return `<b>${esc(s.name)}</b><br>${fmt(o.total)}, ${pctOf(o.total,NATION.total)} del total<br><span class="s">Tocá para ver qué exporta y a dónde</span>`;
 }
 function drawSpecials(){
   const g = d3.select('#g-special'); g.selectAll('*').remove();
@@ -215,7 +224,7 @@ function drawSpecials(){
     const parts = s.icon==='both' ? [['wave',SPECIAL.PLAT.pos],['globe',SPECIAL.EXT.pos]] : [[s.icon,s.pos]];
     const a = g.append('g').attr('class',`spec${on?' on':''}${dim?' dim':''}${s.icon==='q'?' ind':''}`)
       .attr('tabindex',0).attr('role','button').attr('aria-pressed',on)
-      .attr('aria-label',`${s.name}: ${M(OTHER[k].total)} millones de USD`)
+      .attr('aria-label',`${s.name}: ${M(OTHER[k].total)} ${U().long}`)
       .on('click',()=>select({type:'esp',id:k}))
       .on('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); select({type:'esp',id:k}); } })
       .on('pointermove',e=>showTip(e,specTip(k))).on('pointerleave',hideTip);
@@ -234,7 +243,7 @@ function drawSpecials(){
 /* ---------- Columna de destinos ---------- */
 const NX = 596, BW = 12, TOP = 30, BOTTOM = 986, G = 5, GG = 10;
 let narrow = false;
-const SZ = () => narrow ? {hh:40, minh:36, lblDy:9, hdDy:12} : {hh:30, minh:24, lblDy:6, hdDy:10};
+const SZ = () => narrow ? {hh:40, minh:36, lblDy:9, hdDy:12, wrap:22} : {hh:30, minh:24, lblDy:6, hdDy:10, wrap:32};
 
 function layout(vals, zones){
   const n = zones.length;
@@ -267,29 +276,29 @@ let REG_C = {};
 
 function flowsFor(sel){
   const flows = [], origins = [];
-  const push = (from, zobj, o, total) => {
+  let missing = false;
+  const push = (from, view, o) => {
+    if(!view.z){ missing = true; return; }
     let s = 0;
-    ZKEYS.forEach(z=>{ const v = zobj[z]||0; if(v>0.05){ flows.push({from,zone:z,v,o}); s+=v; } });
-    const rest = total - s;
-    if(rest > Math.max(5,total*0.002)) flows.push({from,zone:'nd',v:rest,o,nd:true});
+    ZKEYS.forEach(z=>{ const v = view.z[z][state.tipo]; if(v>0.05){ flows.push({from,zone:z,v,o}); s+=v; } });
+    const rest = view.total - s;
+    if(rest > Math.max(5,view.total*0.002)) flows.push({from,zone:'nd',v:rest,o,nd:true});
   };
   if(sel.type==='pais'){
-    Object.entries(REGIONS).forEach(([rid,r])=>{ push(r.name, r.z, REG_C[rid], r.total); origins.push({c:REG_C[rid]}); });
-    Object.values(OTHER).forEach(o=>push(o.name, o.z, SPECIAL[o.key].pos, o.total));
+    Object.entries(REGIONS).forEach(([rid,r])=>{ push(r.name, r, REG_C[rid]); origins.push({c:REG_C[rid]}); });
+    Object.values(OTHER).forEach(o=>push(o.name, o, SPECIAL[o.key].pos));
   } else if(sel.type==='esp'){
-    const o = OTHER[sel.id];
-    push(o.name, o.z, SPECIAL[sel.id].pos, o.total);
+    push(OTHER[sel.id].name, OTHER[sel.id], SPECIAL[sel.id].pos);
   } else if(sel.type==='region'){
-    const r = REGIONS[sel.id];
-    push(r.name, r.z, REG_C[sel.id], r.total);
+    push(REGIONS[sel.id].name, REGIONS[sel.id], REG_C[sel.id]);
     origins.push({c:REG_C[sel.id]});
   } else {
-    const p = P[sel.id];
-    push(p.name, p.z, CENT[sel.id], p.total);
+    push(P[sel.id].name, P[sel.id], CENT[sel.id]);
     origins.push({c:CENT[sel.id]});
   }
+  if(missing) return {flows:[], origins, vals:{}, missing};
   const vals = {}; flows.forEach(f=>{ vals[f.zone]=(vals[f.zone]||0)+f.v; });
-  return {flows, origins, vals};
+  return {flows, origins, vals, missing};
 }
 
 function ribbon(ox,oy,w0,nx,ny,w){
@@ -304,8 +313,8 @@ function ribbon(ox,oy,w0,nx,ny,w){
 
 function drawFlows(){
   const sel = state.sel;
-  const {flows, origins, vals} = flowsFor(sel);
-  const zonesVis = ZONES.filter(z=>z.id==='nd' ? vals.nd>0 : NATION.z[z.id]>0);
+  const {flows, origins, vals, missing} = flowsFor(sel);
+  const zonesVis = missing ? [] : ZONES.filter(z=>z.id==='nd' ? vals.nd>0 : NATION.z[z.id][state.tipo]>0);
   const L = layout(vals, zonesVis);
   const S = SZ();
   const byZone = d3.group(flows, f=>f.zone);
@@ -323,6 +332,11 @@ function drawFlows(){
     .attr('class',f=>'flow'+(f.nd?' nd':'')).attr('data-zone',f=>f.zone)
     .attr('d',f=>ribbon(f.o[0],f.o[1],f.w0,NX,f.ny,f.w));
   batch.transition().delay(DUR()/3).duration(DUR()).style('opacity',1);
+
+  const note = d3.select('#g-note').selectAll('text').data(missing ? [gapText('los destinos')] : []).join('text')
+    .attr('class','flow-note').attr('x',NX).attr('y',TOP+S.hh);
+  note.selectAll('tspan').data(t=>t.match(new RegExp(`.{1,${S.wrap}}(\\s|$)`,'g'))).join('tspan')
+    .attr('x',NX).attr('dy',(d,i)=>i?'1.35em':0).text(d=>d.trim());
 
   const gO = d3.select('#g-origins'); gO.selectAll('*').remove();
   origins.forEach(o=>{
@@ -357,7 +371,7 @@ function drawFlows(){
   nodes.style('display',z=>L.pos[z.id]?null:'none');
   const visN = nodes.filter(z=>L.pos[z.id]);
   visN.classed('zero',z=>!(L.pos[z.id].v>0))
-    .attr('aria-label',z=>{ const v=L.pos[z.id].v; return `${z.name}: ${v>0?M(v)+' millones de USD':'sin exportaciones en este período'}`; });
+    .attr('aria-label',z=>{ const v=L.pos[z.id].v; return `${z.name}: ${v>0?M(v)+' '+U().long:'sin exportaciones en este período'}`; });
   visN.select('.node-hit').attr('x',NX-6).attr('width',906-NX).transition().duration(DUR()).attr('y',z=>L.pos[z.id].y0).attr('height',z=>L.pos[z.id].sh);
   visN.select('.node-bar').attr('x',NX).attr('width',BW).transition().duration(DUR()).attr('y',z=>L.pos[z.id].by).attr('height',z=>L.pos[z.id].bh);
   visN.select('.node-tick').attr('x1',NX).attr('x2',NX+BW).transition().duration(DUR())
@@ -379,7 +393,7 @@ function selName(sel){ return sel.type==='pais' ? 'el país' : sel.type==='regio
 function zoneTip(zid){
   const z = ZI[zid]; const sel = state.sel; const v = state.lastVals[zid]||0;
   let s = `<b>${esc(z.name)}</b><br><span class="s">${esc(z.members)}</span><br>`;
-  s += v>0 ? `${M(v)} M, ${pctOf(v,selTotal(sel))} de lo exportado por ${esc(selName(sel))}` : 'Sin exportaciones en este período';
+  s += v>0 ? `${fmt(v)}, ${pctOf(v,selTotal(sel))} de lo exportado por ${esc(selName(sel))}` : 'Sin exportaciones en este período';
   return s;
 }
 
@@ -396,14 +410,16 @@ function showTip(e,html){
 function hideTip(){ tip.style.opacity = 0; }
 
 /* ---------- Panel ---------- */
-function rubroBlock(rArr, total){
-  const segs = RUBROS.map((r,i)=>`<span style="width:${total?100*rArr[i]/total:0}%;background:var(${r.css})" title="${esc(r.name)}"></span>`).join('');
-  const rows = RUBROS.map((r,i)=>`<li><span class="sw" style="background:var(${r.css})"></span><span>${esc(r.name)}</span><span class="v">${rArr[i]>=0.05?M(rArr[i])+' M':'—'}</span><span class="p">${rArr[i]>=0.05?pctOf(rArr[i],total):''}</span></li>`).join('');
+function bigNumber(v){ return `<div class="big"><span class="n">${M(v)}</span><span class="u">${esc(unitText())}</span></div>`; }
+function rubroBlock(r){
+  const total = sum(r), off = i => state.tipo && state.tipo!==i+1 ? ' class="off"' : '';
+  const segs = RUBROS.map((x,i)=>`<span${off(i)} style="width:${total?100*r[i]/total:0}%;background:var(${x.css})" title="${esc(x.name)}"></span>`).join('');
+  const rows = RUBROS.map((x,i)=>`<li${off(i)}><span class="sw" style="background:var(${x.css})"></span><span>${esc(x.name)}</span><span class="v">${r[i]>=0.05?fmt(r[i]):'—'}</span><span class="p">${r[i]>=0.05?pctOf(r[i],total):''}</span></li>`).join('');
   return `<div class="stack" role="img" aria-label="Composición por rubro">${segs}</div><ul class="rubros">${rows}</ul>`;
 }
 function destRows(entries, base){
   const max = d3.max(entries, d=>d.v) || 1;
-  return `<ul class="rows">${entries.map(d=>`<li class="row${d.nd?' nd':''}"><span>${esc(d.name)}</span><span><span class="v">${M(d.v)} M</span> <span class="small" style="margin:0">${pctOf(d.v,base)}</span></span><span class="bar"><i style="width:${100*d.v/max}%"></i></span>${d.note?`<span class="note">${esc(d.note)}</span>`:''}</li>`).join('')}</ul>`;
+  return `<ul class="rows">${entries.map(d=>`<li class="row${d.nd?' nd':''}"><span>${esc(d.name)}</span><span><span class="v">${fmt(d.v)}</span> <span class="small" style="margin:0">${pctOf(d.v,base)}</span></span><span class="bar"><i style="width:${100*d.v/max}%"></i></span>${d.note?`<span class="note">${esc(d.note)}</span>`:''}</li>`).join('')}</ul>`;
 }
 function varSpan(v){ return v==null ? '' : `<span class="${v>=0?'pos':'neg'}">${sgn(v)}</span>`; }
 function varText(v){
@@ -411,25 +427,31 @@ function varText(v){
   return `${varSpan(v)} ${isSem(state.period)?'frente al '+META.semester.compareWith:'frente a '+(+state.period-1)}.`;
 }
 function zoneEntries(z, base){
-  const e = ZKEYS.filter(k=>z[k]>0.05).map(k=>({name:ZI[k].name, v:z[k]})).sort((a,b)=>b.v-a.v);
+  const e = ZKEYS.filter(k=>z[k][state.tipo]>0.05).map(k=>({name:ZI[k].name, v:z[k][state.tipo]})).sort((a,b)=>b.v-a.v);
   const rest = base - sum(e.map(d=>d.v));
   if(rest>Math.max(5,base*0.002)) e.push({name:ZI.nd.name, v:rest, nd:true, note:ZI.nd.members});
   return e;
 }
-function countryLine(list, label){
-  if(!list || !list.length) return '';
-  return `<p class="small" style="margin:12px 0 0">${label}: ${list.map(c=>`${esc(c[0])} ${M(c[1])} M`).join(', ')}.</p>`;
+function countryLine(list, label, n=5){
+  const top = (list||[]).map(c=>[c[0], byTipo(c[1])]).filter(c=>c[1]>0.05).sort((a,b)=>b[1]-a[1]).slice(0,n);
+  if(!top.length) return '';
+  return `<p class="small" style="margin:12px 0 0">${label}: ${top.map(c=>`${esc(c[0])} ${fmt(c[1])}`).join(', ')}.</p>`;
+}
+function destBlock(v, label, n){
+  const body = v.z ? destRows(zoneEntries(v.z,v.total),v.total) + countryLine(v.c,label,n) : `<p class="small">${esc(gapText('los destinos'))}</p>`;
+  return `<div class="sec"><h3>A dónde va</h3>${body}</div>`;
 }
 function confNote(k, total){
   if(!(k>0.5)) return '';
-  return `<p class="small">Además, ${M(k)} M (${pctOf(k,total)}) figuran como confidenciales: el INDEC publica la provincia, el rubro y el destino, pero no el producto, para no revelar datos de empresas individuales.</p>`;
+  return `<p class="small">Además, ${fmt(k)} (${pctOf(k,total)}) figuran como confidenciales: el INDEC publica la provincia, el rubro y el destino, pero no el producto, para no revelar datos de empresas individuales.</p>`;
 }
-function prodList(list, total){
-  if(!list || !list.length) return '';
-  return `<p class="small" style="margin-top:16px">Principales productos</p><ul class="hl">${list.map(p=>{
-    if(p[1]==null) return `<li>${esc(p[0])}</li>`;
-    const extra = p.length>2 && p[2]!=null ? `, ${sgn(p[2])} interanual` : `, ${pctOf(p[1],total)} del total`;
-    return `<li>${esc(p[0])}: ${M(p[1])} M${extra}</li>`; }).join('')}</ul>`;
+function prodList(list, total, n=6){
+  const top = topProducts(list, n);
+  if(!top.length) return '';
+  return `<p class="small" style="margin-top:16px">Principales productos</p><ul class="hl">${top.map(p=>{
+    if(p[2]==null) return `<li>${esc(p[0])}</li>`;
+    const extra = p[4]!=null ? `, ${sgn(p[4])} interanual` : `, ${pctOf(p[2],total)} del total`;
+    return `<li>${esc(p[0])}: ${fmt(p[2])}${extra}</li>`; }).join('')}</ul>`;
 }
 
 /* Mini gráfico de evolución */
@@ -442,79 +464,82 @@ function evoBlock(key){
   const curLbl = isSem(pk) ? String(META.semester.year) : pk;
   const bars = s.map((d,i)=>{
     const x = i*(bw+gap), on = d.lbl===curLbl, clickable = !!d.k;
-    return `<rect class="evo-bar${on?' on':''}${clickable?' go':''}" x="${x.toFixed(1)}" y="${y(d.v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(H-padB-y(d.v)).toFixed(1)}" ${clickable?`data-period="${d.k}"`:''}><title>${d.lbl}${isSem(pk)?' (1er sem.)':''}: ${M(d.v)} M</title></rect>`;
+    return `<rect class="evo-bar${on?' on':''}${clickable?' go':''}" x="${x.toFixed(1)}" y="${y(d.v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(H-padB-y(d.v)).toFixed(1)}" ${clickable?`data-period="${d.k}"`:''}><title>${d.lbl}${isSem(pk)?' (1er sem.)':''}: ${fmt(d.v)}</title></rect>`;
   }).join('');
   const cur = s.find(d=>d.lbl===curLbl);
   const peak = s.reduce((a,b)=>b.v>a.v?b:a);
   const first = s[0].lbl, last = s[s.length-1].lbl;
   const title = isSem(pk) ? `Primeros semestres, ${first}–${last}` : `Evolución anual, ${first}–${last}`;
   return `<div class="sec"><h3>${title}</h3>
-    <svg class="evo" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}: máximo en ${peak.lbl} con ${M(peak.v)} millones de USD; ${curLbl}: ${M(cur?.v||0)} millones">
-      <text class="evo-t" x="0" y="10">Máximo: ${M(peak.v)} M (${peak.lbl})</text>
+    <svg class="evo" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}: máximo en ${peak.lbl} con ${M(peak.v)} ${U().long}; ${curLbl}: ${M(cur?.v||0)} ${U().long}">
+      <text class="evo-t" x="0" y="10">Máximo: ${fmt(peak.v)} (${peak.lbl})</text>
       ${bars}
       <text class="evo-t" x="0" y="${H-3}">${first}</text>
       <text class="evo-t" x="${W}" y="${H-3}" text-anchor="end">${last}</text>
     </svg>
-    <p class="small">${isSem(pk)?'Se comparan solo primeros semestres, para no mezclar un semestre con años completos.':'Tocá una barra para ir a ese año.'} Dólares corrientes, sin ajustar por inflación.</p></div>`;
+    <p class="small">${isSem(pk)?'Se comparan solo primeros semestres, para no mezclar un semestre con años completos.':'Tocá una barra para ir a ese año.'} ${U().note}</p></div>`;
 }
 
 function renderPanel(){
   const sel = state.sel, el = document.getElementById('panel'), pk = state.period, sem = isSem(pk);
+  const countries = sem ? 'Principales países (entre los que detalla el informe)' : 'Principales países';
   let h = '';
   if(sel.type==='pais'){
     const n = NATION;
     h += `<div class="panel-main"><p class="crumb">Argentina · ${esc(PER.label)}</p><h2>Todo el país</h2>`;
-    h += `<div class="big"><span class="n">${M(n.total)}</span><span class="u">millones de USD</span></div>`;
+    h += bigNumber(n.total);
     h += `<p class="facts">${varText(n.var)}</p>`;
-    h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(n.r,n.total)}`;
-    if(sem && PER.complejos){
+    h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(n.r)}`;
+    if(sem && PER.complejos && !state.tipo && U().id==='usd'){
       h += `<p class="small" style="margin-top:16px">Principales complejos exportadores</p>${destRows(PER.complejos.map(c=>({name:c[0],v:c[1],note:`${sgn(c[2])} interanual`})), n.total)}`;
     } else {
-      h += prodList(PER.nat.p, n.total) + confNote(PER.nat.k, n.total);
+      h += prodList(n.p, n.total, 8) + confNote(n.k, n.total);
     }
     h += `</div>`;
     h += evoBlock('N');
     h += `</div>`;
     const rmax = d3.max(Object.values(REGIONS),r=>r.total);
     h += `<div class="pair">`;
-    h += `<div class="sec"><h3>De dónde sale</h3><ul class="rows">${Object.entries(REGIONS).sort((a,b)=>b[1].total-a[1].total).map(([id,r])=>`<li class="row"><button type="button" data-region="${id}">${esc(r.name)}</button><span><span class="v">${M(r.total)} M</span> <span class="small" style="margin:0">${nf1.format(r.share)}%</span></span><span class="bar"><i style="width:${100*r.total/rmax}%"></i></span></li>`).join('')}</ul>`;
-    h += `<p class="small" style="margin:14px 0 8px">Fuera de las provincias</p><ul class="rows">${Object.values(OTHER).map(o=>`<li class="row"><button type="button" data-esp="${o.key}">${esc(SPECIAL[o.key].name)}</button><span><span class="v">${M(o.total)} M</span> <span class="small" style="margin:0">${pctOf(o.total,n.total)}</span></span><span class="bar"><i style="width:${100*o.total/rmax}%"></i></span></li>`).join('')}</ul></div>`;
-    h += `<div class="sec"><h3>A dónde va</h3>${destRows(zoneEntries(n.z,n.total),n.total)}${countryLine(PER.nat.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}</div>`;
+    h += `<div class="sec"><h3>De dónde sale</h3><ul class="rows">${Object.entries(REGIONS).sort((a,b)=>b[1].total-a[1].total).map(([id,r])=>`<li class="row"><button type="button" data-region="${id}">${esc(r.name)}</button><span><span class="v">${fmt(r.total)}</span> <span class="small" style="margin:0">${nf1.format(r.share)}%</span></span><span class="bar"><i style="width:${100*r.total/rmax}%"></i></span></li>`).join('')}</ul>`;
+    h += `<p class="small" style="margin:14px 0 8px">Fuera de las provincias</p><ul class="rows">${Object.values(OTHER).map(o=>`<li class="row"><button type="button" data-esp="${o.key}">${esc(SPECIAL[o.key].name)}</button><span><span class="v">${fmt(o.total)}</span> <span class="small" style="margin:0">${pctOf(o.total,n.total)}</span></span><span class="bar"><i style="width:${100*o.total/rmax}%"></i></span></li>`).join('')}</ul></div>`;
+    h += destBlock(n, countries, 6);
     h += `</div>`;
   } else if(sel.type==='esp'){
     const o = OTHER[sel.id], s = SPECIAL[sel.id];
     let desc = s.desc;
-    if(sel.id==='EXTPLAT' && PER.split) desc += ` En este semestre: ${M(PER.split.EXT[0])} M de origen extranjero y ${M(PER.split.PLAT[0])} M de plataforma continental.`;
+    if(sel.id==='EXTPLAT' && PER.split) desc += ` En este semestre: ${M(PER.split.EXT[0])} millones de USD de origen extranjero y ${M(PER.split.PLAT[0])} millones de USD de plataforma continental.`;
     h += `<div class="panel-main"><p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">·</span>Fuera de las provincias<span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(s.name)}</h2>`;
-    h += `<div class="big"><span class="n">${M(o.total)}</span><span class="u">millones de USD</span></div>`;
+    h += bigNumber(o.total);
     h += `<p class="facts">${varText(o.var)} ${pctOf(o.total,NATION.total)} del total nacional.</p>`;
     h += `<p class="desc">${esc(desc)}</p>`;
-    h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(o.r,o.total)}${prodList(o.p,o.total)}${confNote(o.k,o.total)}</div>`;
+    h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(o.r)}${prodList(o.p,o.total)}${confNote(o.k,o.total)}</div>`;
     h += evoBlock(sel.id);
-    h += `<div class="sec"><h3>A dónde va</h3>${destRows(zoneEntries(o.z,o.total),o.total)}${countryLine(o.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}</div></div>`;
+    h += destBlock(o, countries);
+    h += `</div>`;
   } else if(sel.type==='region'){
     const r = REGIONS[sel.id];
     h += `<div class="panel-main"><p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(r.name)}</h2>`;
-    h += `<div class="big"><span class="n">${M(r.total)}</span><span class="u">millones de USD</span></div>`;
+    h += bigNumber(r.total);
     h += `<p class="facts">${varText(r.var)} ${nf1.format(r.share)}% del total nacional.</p>`;
-    h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(r.r,r.total)}${prodList(r.prods,r.total)}${confNote(r.k,r.total)}</div>`;
+    h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(r.r)}${prodList(r.p,r.total)}${confNote(r.k,r.total)}</div>`;
     h += evoBlock('R:'+sel.id);
     h += `</div>`;
     const provs = REG_ISOS[sel.id].map(i=>P[i]).sort((a,b)=>b.total-a.total);
     const pmax = provs[0].total || 1;
     h += `<div class="pair">`;
-    h += `<div class="sec"><h3>Provincias</h3><ul class="rows">${provs.map(p=>`<li class="row"><button type="button" data-prov="${p.iso}">${esc(p.name)}</button><span><span class="v">${M(p.total)} M</span> <span class="small" style="margin:0">${pctOf(p.total,r.total)}</span></span><span class="bar"><i style="width:${100*p.total/pmax}%"></i></span></li>`).join('')}</ul></div>`;
-    h += `<div class="sec"><h3>A dónde va</h3>${destRows(zoneEntries(r.z,r.total),r.total)}${countryLine(r.partners,'Principales países')}</div>`;
+    h += `<div class="sec"><h3>Provincias</h3><ul class="rows">${provs.map(p=>`<li class="row"><button type="button" data-prov="${p.iso}">${esc(p.name)}</button><span><span class="v">${fmt(p.total)}</span> <span class="small" style="margin:0">${pctOf(p.total,r.total)}</span></span><span class="bar"><i style="width:${100*p.total/pmax}%"></i></span></li>`).join('')}</ul></div>`;
+    h += destBlock(r, 'Principales países');
     h += `</div>`;
   } else {
     const p = P[sel.id], r = REGIONS[p.reg];
     const rank = Object.values(P).filter(q=>q.total>p.total).length + 1;
     h += `<div class="panel-main"><p class="crumb"><button class="linkbtn" type="button" data-go="pais">Todo el país</button><span aria-hidden="true">/</span><button class="linkbtn" type="button" data-region="${p.reg}">${esc(r.name)}</button><span aria-hidden="true">·</span>${esc(PER.label)}</p><h2>${esc(p.name)}</h2>`;
-    h += `<div class="big"><span class="n">${M(p.total)}</span><span class="u">millones de USD</span></div>`;
-    h += `<p class="facts">${varText(p.var)} ${p.share>=0.1?nf1.format(p.share)+'%':'Menos del 0,1%'} del total nacional, puesto ${rank} de 24.</p>`;
-    h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(p.r,p.total)}${prodList(p.p,p.total)}${confNote(p.k,p.total)}</div>`;
+    h += bigNumber(p.total);
+    h += `<p class="facts">${varText(p.var)} ${p.share>=0.1?nf1.format(p.share)+'%':'Menos del 0,1%'} del total nacional, puesto ${rank} de ${ISOS.length}.</p>`;
+    h += `<div class="sec"><h3>Qué exporta</h3>${rubroBlock(p.r)}${prodList(p.p,p.total)}${confNote(p.k,p.total)}</div>`;
     h += evoBlock(p.iso);
-    h += `<div class="sec"><h3>A dónde va</h3>${destRows(zoneEntries(p.z,p.total),p.total)}${countryLine(p.c, sem?'Principales países (entre los que detalla el informe)':'Principales países')}</div></div>`;
+    h += destBlock(p, countries);
+    h += `</div>`;
   }
   el.innerHTML = h;
   el.querySelectorAll('[data-region]').forEach(b=>b.addEventListener('click',()=>select({type:'region',id:b.dataset.region})));
@@ -525,10 +550,13 @@ function renderPanel(){
 }
 
 /* ---------- Selección ---------- */
+function isDim(iso){
+  const sel = state.sel;
+  return sel.type==='esp' || (sel.type==='region' && DATA.reg[iso]!==sel.id) || (sel.type==='prov' && iso!==sel.id && DATA.reg[iso]!==DATA.reg[sel.id]);
+}
 function highlight(){
   const sel = state.sel;
-  provSel.classed('sel',d=>sel.type==='prov' && d.iso===sel.id)
-    .classed('dim',d=>sel.type==='esp' || (sel.type==='region' && DATA.reg[d.iso]!==sel.id) || (sel.type==='prov' && d.iso!==sel.id && DATA.reg[d.iso]!==DATA.reg[sel.id]));
+  provSel.classed('sel',d=>sel.type==='prov' && d.iso===sel.id).classed('dim',d=>isDim(d.iso));
   provSel.filter(d=>sel.type==='prov' && d.iso===sel.id).raise();
   provSel.filter(d=>d.iso==='AR-C').raise();
 }
@@ -537,6 +565,11 @@ function select(sel){
   const pick = document.getElementById('pick');
   pick.value = state.sel.type==='pais' ? 'pais' : state.sel.type+':'+state.sel.id;
   hideTip(); highlight(); drawFlows(); renderPanel();
+}
+function render(){
+  buildView(state.period);
+  renderLede();
+  paint(); hideTip(); highlight(); drawFlows(); renderPanel();
 }
 
 /* ---------- Período ---------- */
@@ -553,21 +586,28 @@ async function setPeriod(pk, fromSlider){
   }
   if(token!==periodToken) return;
   state.period = pk;
-  buildView(pk);
-  if(state.sel.type==='esp' && !OTHER[state.sel.id]) state.sel = {type:'esp', id: state.sel.id==='EXTPLAT' ? 'PLAT' : (OTHER.EXTPLAT ? 'EXTPLAT' : 'pais')};
+  const specs = specKeys(pk);
+  if(state.sel.type==='esp' && !specs.includes(state.sel.id)) state.sel = {type:'esp', id: state.sel.id==='EXTPLAT' ? 'PLAT' : (specs.includes('EXTPLAT') ? 'EXTPLAT' : 'pais')};
   if(state.sel.id==='pais') state.sel = {type:'pais',id:null};
   buildPick();
-  REG_C = Object.fromEntries(Object.keys(REGIONS).map(r=>[r,weightedCentroid(REG_ISOS[r])]));
-  if(!fromSlider) yearIn.value = ORDER.indexOf(pk);
+  const i = ORDER.indexOf(pk);
+  if(!fromSlider) yearIn.value = i;
+  showPeriod(pk);
+  document.getElementById('prev').disabled = i===0;
+  document.getElementById('next').disabled = i===ORDER.length-1;
+  render();
+}
+function showPeriod(pk){
   const sem = isSem(pk);
   yearOut.textContent = sem ? META.semester.heading : pk;
   yearIn.setAttribute('aria-valuetext', sem ? META.semester.aria : pk);
-  document.getElementById('lede').innerHTML = sem
-    ? `Exportaciones de bienes del <strong>${META.semester.lede}</strong>, en millones de dólares. Cada dólar está asignado a la provincia donde se produjo el bien, no al puerto por donde salió. <span class="warn">Es medio año: no lo compares con los años completos.</span>`
-    : `Exportaciones de bienes de <strong>${pk}</strong>, en millones de dólares corrientes. Cada dólar está asignado a la provincia donde se produjo el bien, no al puerto por donde salió.`;
-  document.getElementById('prev').disabled = ORDER.indexOf(pk)===0;
-  document.getElementById('next').disabled = ORDER.indexOf(pk)===ORDER.length-1;
-  paint(); hideTip(); highlight(); drawFlows(); renderPanel();
+}
+function renderLede(){
+  const pk = state.period;
+  const where = 'Cada exportación se asigna a la provincia donde se produjo el bien, no al puerto por donde salió.';
+  document.getElementById('lede').innerHTML = isSem(pk)
+    ? `Exportaciones de bienes del <strong>${META.semester.lede}</strong>, en ${U().lede}. ${where} <span class="warn">Es medio año: no lo compares con los años completos.</span>`
+    : `Exportaciones de bienes de <strong>${pk}</strong>, en ${U().lede}. ${where}`;
 }
 
 function buildPick(){
@@ -580,7 +620,7 @@ function buildPick(){
     REG_ISOS[id].slice().sort((a,b)=>DATA.names[a].localeCompare(DATA.names[b],'es')).forEach(i=>{ o += `<option value="prov:${i}">${esc(DATA.names[i])}</option>`; });
     o += `</optgroup>`;
   });
-  o += `<optgroup label="Fuera de las provincias">${Object.keys(OTHER||{}).map(k=>`<option value="esp:${k}">${esc(SPECIAL[k].name)}</option>`).join('')}</optgroup>`;
+  o += `<optgroup label="Fuera de las provincias">${(state.period?specKeys(state.period):[]).map(k=>`<option value="esp:${k}">${esc(SPECIAL[k].name)}</option>`).join('')}</optgroup>`;
   pick.innerHTML = o;
   pick.value = state.sel.type==='pais' ? 'pais' : state.sel.type+':'+state.sel.id;
 }
@@ -588,6 +628,15 @@ function buildPick(){
 /* ---------- Controles ---------- */
 let playTimer = null;
 function stopPlay(){ clearInterval(playTimer); playTimer=null; const b=document.getElementById('play'); b.setAttribute('aria-pressed','false'); b.textContent='▶ Reproducir'; }
+function segmented(id, opts, current, onPick){
+  const seg = document.getElementById(id);
+  seg.innerHTML = opts.map((o,i)=>`<button type="button" data-i="${i}" aria-pressed="${i===current}">${o.css?`<span class="sw" style="background:var(${o.css})"></span>`:''}${esc(o.short)}</button>`).join('');
+  seg.addEventListener('click',e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    onPick(+b.dataset.i);
+  });
+}
 function initControls(){
   const pick = document.getElementById('pick');
   pick.addEventListener('change',()=>{
@@ -595,18 +644,11 @@ function initControls(){
     if(v==='pais') select({type:'pais'}); else { const [t,id]=v.split(':'); select({type:t,id}); }
   });
   buildPick();
-  const seg = document.getElementById('colorby');
-  const opts = [{id:'total',short:'Total'}, ...RUBROS];
-  seg.innerHTML = opts.map(r=>`<button type="button" data-m="${r.id}" aria-pressed="${r.id===state.metric}">${r.css?`<span class="sw" style="background:var(${r.css})"></span>`:''}${esc(r.short)}</button>`).join('');
-  seg.addEventListener('click',e=>{
-    const b = e.target.closest('button'); if(!b) return;
-    state.metric = b.dataset.m;
-    seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
-    paint();
-  });
+  segmented('tipo', TIPOS, state.tipo, i=>{ state.tipo = i; render(); });
+  segmented('unit', UNITS, state.unit, i=>{ state.unit = i; render(); });
   yearIn.max = ORDER.length-1;
   let rt;
-  yearIn.addEventListener('input',()=>{ stopPlay(); const pk = ORDER[+yearIn.value]; yearOut.textContent = isSem(pk)?META.semester.heading:pk; clearTimeout(rt); rt=setTimeout(()=>setPeriod(pk,true),60); });
+  yearIn.addEventListener('input',()=>{ stopPlay(); const pk = ORDER[+yearIn.value]; showPeriod(pk); clearTimeout(rt); rt=setTimeout(()=>setPeriod(pk,true),60); });
   document.getElementById('prev').addEventListener('click',()=>{ stopPlay(); const i=ORDER.indexOf(state.period); if(i>0) setPeriod(ORDER[i-1]); });
   document.getElementById('next').addEventListener('click',()=>{ stopPlay(); const i=ORDER.indexOf(state.period); if(i<ORDER.length-1) setPeriod(ORDER[i+1]); });
   document.getElementById('play').addEventListener('click',e=>{
@@ -677,9 +719,8 @@ async function main(){
   REG_ISOS = {};
   ISOS.forEach(i=>{ (REG_ISOS[DATA.reg[i]] ||= []).push(i); });
   if(META.semester) SPECIAL.EXTPLAT.desc = SPECIAL.EXTPLAT.desc.replaceAll('2026', String(META.semester.year));
-  buildDomains();
-  drawBase();
   document.body.classList.remove('is-loading');
+  drawBase();
   renderTicks();
   setNarrow();
   initControls();
