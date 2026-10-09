@@ -116,6 +116,15 @@ select{
 .seg button:last-child{border-right:0}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--sea)}
 .seg .sw{width:9px;height:9px;border-radius:2px;display:inline-block}
+.switch{
+  font:inherit;font-size:14px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--rule);border-radius:6px;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:9px;
+}
+.switch .track{position:relative;width:28px;height:16px;border-radius:8px;background:var(--rule);transition:background .2s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--sea);transition:transform .2s}
+.switch[aria-checked="true"] .track{background:var(--flow-strong)}
+.switch[aria-checked="true"] .track::after{transform:translateX(12px)}
+.switch:disabled{opacity:.45;cursor:default}
 button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 .layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:clamp(18px,3vw,44px);align-items:start}
@@ -181,6 +190,11 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 .flow-hit{fill:transparent}
 .split{opacity:.95;pointer-events:none}
 .flow-note{font-size:17px;fill:var(--muted)}
+.icons{cursor:pointer;transition:opacity .25s}
+.icons.dim{opacity:.3}
+.badge circle{fill:var(--surface);stroke-width:1.8}
+.badge use{color:var(--ink)}
+.icons:hover .badge circle{stroke-width:2.6}
 .origin{fill:var(--sea);stroke:var(--flow-strong);stroke-width:2;pointer-events:none}
 .origin-lbl{font-size:13px;fill:var(--muted);font-stretch:85%;pointer-events:none}
 .node-bar{fill:var(--flow-strong)}
@@ -203,6 +217,8 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 }
 .tip b{font-weight:650}
 .tip .s{opacity:.78;font-size:13px}
+.tip .ti{display:flex;align-items:center;gap:7px;margin-top:4px}
+.tip .ico{flex:none;width:16px;height:16px}
 .tip .mix{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;font-size:13px}
 .tip .mix i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
 

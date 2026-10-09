@@ -41,6 +41,10 @@
       <span class="lbl" id="unit-lbl">Unidad</span>
       <div class="seg" role="group" aria-labelledby="unit-lbl" id="unit"></div>
     </div>
+    <div class="ctl">
+      <span class="lbl" id="icons-lbl">Principales productos</span>
+      <button type="button" class="switch" id="icons" role="switch" aria-checked="false" aria-labelledby="icons-lbl"><span class="track" aria-hidden="true"></span>Íconos en el mapa</button>
+    </div>
   </div>
 
   <div class="layout">
@@ -63,6 +67,7 @@
         <g id="g-legend"></g>
         <g id="g-flows" class="flows"></g>
         <g id="g-split"></g>
+        <g id="g-icons" aria-hidden="true"></g>
         <g id="g-origins"></g>
         <g id="g-special"></g>
         <g id="g-hits" clip-path="url(#clip-hits)"></g>
@@ -70,7 +75,7 @@
         <g id="g-split-bar"></g>
         <g id="g-note"></g>
       </svg>
-      <p class="howto">El color muestra cuánto exporta cada provincia del tipo de producto elegido, en dólares o en toneladas. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Pasá el cursor por un destino o por sus bandas para aislarlas y ver qué parte es de cada rubro.</p>
+      <p class="howto">El color muestra cuánto exporta cada provincia del tipo de producto elegido, en dólares o en toneladas. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Pasá el cursor por un destino o por sus bandas para aislarlas y ver qué parte es de cada rubro. Los íconos muestran los tres principales productos de cada provincia; el borde indica el rubro.</p>
       <div class="tip" id="tip" role="status" aria-live="polite"></div>
     </div>
     <aside class="panel" id="panel" aria-live="polite"></aside>

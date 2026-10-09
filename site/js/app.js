@@ -11,6 +11,7 @@ const UNITS = [
   {id:'usd', short:'USD', long:'millones de USD', abbr:'M', lede:'millones de dólares corrientes', gap:'por rubro', note:'Dólares corrientes, sin ajustar por inflación.'},
   {id:'tn', short:'Toneladas', long:'miles de toneladas', abbr:'mil t', lede:'miles de toneladas de peso neto', gap:'en toneladas', note:'Toneladas de peso neto.'}
 ];
+const ICONS = 'img/icons.svg';
 const ZONES = [
   {id:'mercosur', name:'Mercosur', group:'América', members:'Brasil, Paraguay, Uruguay y Venezuela, con sus zonas francas'},
   {id:'aladi', name:'Chile, Perú y otros', group:'América', members:'Resto de ALADI: Chile, Perú, Bolivia, Colombia, Cuba, Ecuador y Panamá'},
@@ -56,6 +57,7 @@ const fmt = v => `${M(v)} ${U().abbr}`;
 const cap = s => s[0].toUpperCase() + s.slice(1);
 const unitText = () => U().long + (state.tipo ? ' en ' + TIPOS[state.tipo].name.toLowerCase() : '');
 const gapText = what => `Para el ${META.semester.lede}, el INDEC no publica ${what} ${U().gap}.`;
+const iconSvg = id => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><use href="${ICONS}#${esc(id)}"/></svg>`;
 const topProducts = (list, n) => (list||[]).filter(p=>!state.tipo || p[1]===state.tipo).slice(0,n);
 
 /* Orígenes que no son provincias */
@@ -128,7 +130,7 @@ const tip = document.getElementById('tip');
 const viz = document.getElementById('viz');
 
 /* ---------- Estado ---------- */
-const state = {sel:{type:'pais',id:null}, tipo:0, unit:0, period:null, flows:[], pos:{}};
+const state = {sel:{type:'pais',id:null}, tipo:0, unit:0, icons:false, period:null, flows:[], pos:{}};
 
 /* ---------- Mapa base ---------- */
 function drawBase(){
@@ -239,6 +241,41 @@ function drawSpecials(){
     });
     const [lx,ly] = parts[0][1];
     a.append('text').attr('class','spec-lbl').attr('x',lx).attr('y',ly+(narrow?50:32)).attr('text-anchor','middle').text(s.label);
+  });
+}
+
+function badge(g, p, x, y, r){
+  const b = g.append('g').attr('class','badge').attr('transform',`translate(${x},${y})`);
+  b.append('circle').attr('r',r).style('stroke',`var(${RUBROS[p[1]-1].css})`);
+  b.append('use').attr('href',`${ICONS}#${p[3]}`).attr('x',-r*0.6).attr('y',-r*0.6).attr('width',r*1.2).attr('height',r*1.2);
+}
+function iconTip(iso, top){
+  return `<b>${esc(P[iso].name)}</b>${top.map(p=>`<span class="ti">${iconSvg(p[3])}${esc(p[0])}${p[2]!=null?`: ${fmt(p[2])}`:''}</span>`).join('')}`;
+}
+function iconSpots(path, [cx,cy], n, r){
+  const s = 2*r + 3, ring = r + 6, k = 0.8*r, line = d3.range(n).map(i=>(i-(n-1)/2)*s);
+  const layouts = [
+    line.map(x=>[x,r+4]),
+    [[-ring*0.87,-ring/2],[ring*0.87,-ring/2],[0,ring]].slice(0,n),
+    d3.range(n).map(i=>[0,r+4+i*s])
+  ];
+  const inside = ([x,y]) => [[0,0],[k,0],[-k,0],[0,k],[0,-k]].every(([dx,dy])=>path.isPointInFill(new DOMPoint(cx+x+dx,cy+y+dy)));
+  const fit = layouts.find(l=>l.every(inside)) || line.map(x=>[x*0.2,0]);
+  return fit.map(([x,y])=>[cx+x,cy+y]);
+}
+function drawIcons(){
+  const g = d3.select('#g-icons'); g.selectAll('*').remove();
+  if(!state.icons) return;
+  const r = narrow ? 16 : 10;
+  provSel.each(function(d){
+    const top = topProducts(P[d.iso].p, 3);
+    if(!top.length) return;
+    const spots = iconSpots(this, CENT[d.iso], top.length, r);
+    const a = g.append('g').datum(d.iso).attr('class','icons').classed('dim',isDim(d.iso))
+      .on('click',()=>select({type:'prov',id:d.iso}))
+      .on('pointermove',e=>showTip(e,iconTip(d.iso,top)))
+      .on('pointerleave',hideTip);
+    top.map((p,i)=>[p,spots[i]]).reverse().forEach(([p,[x,y]])=>badge(a,p,x,y,r));
   });
 }
 
@@ -599,6 +636,7 @@ function isDim(iso){
 function highlight(){
   const sel = state.sel;
   provSel.classed('sel',d=>sel.type==='prov' && d.iso===sel.id).classed('dim',d=>isDim(d.iso));
+  d3.selectAll('#g-icons .icons').classed('dim',isDim);
   provSel.filter(d=>sel.type==='prov' && d.iso===sel.id).raise();
   provSel.filter(d=>d.iso==='AR-C').raise();
 }
@@ -611,7 +649,10 @@ function select(sel){
 function render(){
   buildView(state.period);
   renderLede();
-  paint(); hideTip(); highlight(); drawFlows(); renderPanel();
+  const sw = document.getElementById('icons');
+  sw.disabled = !ISOS.some(i=>P[i].p);
+  sw.title = sw.disabled ? gapText('los productos') : '';
+  paint(); drawIcons(); hideTip(); highlight(); drawFlows(); renderPanel();
 }
 
 /* ---------- Período ---------- */
@@ -688,6 +729,8 @@ function initControls(){
   buildPick();
   segmented('tipo', TIPOS, state.tipo, i=>{ state.tipo = i; render(); });
   segmented('unit', UNITS, state.unit, i=>{ state.unit = i; render(); });
+  const sw = document.getElementById('icons');
+  sw.addEventListener('click',()=>{ state.icons = !state.icons; sw.setAttribute('aria-checked',state.icons); drawIcons(); });
   yearIn.max = ORDER.length-1;
   let rt;
   yearIn.addEventListener('input',()=>{ stopPlay(); const pk = ORDER[+yearIn.value]; showPeriod(pk); clearTimeout(rt); rt=setTimeout(()=>setPeriod(pk,true),60); });
@@ -769,7 +812,7 @@ async function main(){
   const mq = matchMedia('(prefers-color-scheme: dark)');
   mq.addEventListener?.('change',paint);
   new MutationObserver(paint).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
-  let rz; addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(()=>{ if(setNarrow()){ drawLegend(); drawFlows(); } },150); });
+  let rz; addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(()=>{ if(setNarrow()){ drawLegend(); drawFlows(); drawIcons(); } },150); });
   const years = ORDER.filter(k=>!isSem(k));
   await setPeriod(years[years.length-1]);
   select({type:'pais'});
