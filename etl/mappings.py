@@ -72,6 +72,8 @@ def load_config() -> dict:
         "regions": regions,
         "name_to_iso": name_to_iso,
         "region_labels": {norm_name(k): str(v) for k, v in provincias["regiones_anexo"].items()},
+        "icons": {norm_code(k): str(v) for k, v in productos["iconos"].items()},
+        "subrubros": {norm_name(k): norm_code(v) for k, v in productos["subrubros"].items()},
         "zone_order": zone_order,
         "zone_by_code": zone_by_code,
         "fallback_prefix": fallback,
@@ -95,6 +97,19 @@ def zone_of(country_code: object) -> str:
     if not code:
         return cfg["fallback_default"]
     return cfg["fallback_prefix"].get(code[0], cfg["fallback_default"])
+
+
+def icon_of(code: str) -> str:
+    icons = load_config()["icons"]
+    prefix = next(code[:size] for size in range(len(code), 0, -1) if code[:size] in icons)
+    return icons[prefix]
+
+
+def subrubro_code(name: object) -> str:
+    code = load_config()["subrubros"].get(norm_name(name))
+    if code is None:
+        raise ValueError(f"Subrubro sin código en productos.yml: {name!r}")
+    return code
 
 
 def province_names() -> dict[str, str]:

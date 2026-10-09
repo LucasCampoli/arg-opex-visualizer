@@ -74,3 +74,114 @@ rename:
   "203C": Quesos
   "105D": Uva de mesa
   "205": Frutas secas
+
+iconos:
+  "1": sprout
+  "101": paw-print
+  "102": fish
+  "102B": shrimp
+  "103": hexagon
+  "104": carrot
+  "104C": bean
+  "105": apple
+  "105C": citrus
+  "105D": grape
+  "106": wheat
+  "107": bean
+  "107D": nut
+  "108": leaf
+  "109": shirt
+  "110": shirt
+  "111": pickaxe
+  "2": package
+  "201": beef
+  "201AE": drumstick
+  "202": fish
+  "203": milk
+  "204": bone
+  "205": nut
+  "206": leaf
+  "207": croissant
+  "208": amphora
+  "209": candy
+  "210": salad
+  "210D": cup-soda
+  "211": wine
+  "212": bean
+  "213": trees
+  "214": briefcase
+  "215": shirt
+  "3": factory
+  "302": flask-conical
+  "302C": pill
+  "302F": spray-can
+  "302JA": fuel
+  "303": box
+  "304": circle-dot
+  "305": briefcase
+  "306": scroll
+  "307": shirt
+  "308": footprints
+  "309": brick-wall
+  "310": gem
+  "311": anvil
+  "312": cog
+  "313": car
+  "314": ship
+  "314A": plane
+  "4": zap
+  "401": droplet
+  "402": fuel
+  "403": droplets
+  "404": flame
+
+subrubros:
+  Animales vivos: "101"
+  Pescados y mariscos sin elaborar: "102"
+  Miel: "103"
+  Hortalizas y legumbres sin elaborar: "104"
+  Frutas frescas: "105"
+  Cereales: "106"
+  Semillas y frutos oleaginosos: "107"
+  Tabaco sin elaborar: "108"
+  Lanas sucias: "109"
+  Fibras de algodón: "110"
+  Minerales metalíferos, escorias y cenizas: "111"
+  Resto de productos primarios: "199"
+  Carnes y sus preparados: "201"
+  Pescados y mariscos elaborados: "202"
+  Productos lácteos: "203"
+  Otros productos de origen animal: "204"
+  Frutas secas o procesadas: "205"
+  Café, té, yerba mate y especias: "206"
+  Productos de molinería y sus preparaciones: "207"
+  Grasas y aceites: "208"
+  Azúcar ,cacao y artículos de confitería: "209"
+  Preparados de hortalizas, legumbres y frutas: "210"
+  Bebidas, líquidos alcohólicos y vinagre: "211"
+  Residuos y desperdicios de la industria alimentaria: "212"
+  Extractos curtientes y tintóreos: "213"
+  Pieles y cueros: "214"
+  Lanas elaboradas: "215"
+  Resto de MOA: "299"
+  Productos químicos y conexos: "302"
+  Materias plásticas y sus manufacturas: "303"
+  Caucho y sus manufacturas: "304"
+  Manufacturas de cuero, marroquinería, etc.: "305"
+  Papel, cartón, impresos y publicaciones: "306"
+  Textiles y confecciones: "307"
+  Calzado y sus componentes: "308"
+  Manufacturas de piedra, yeso, vidrio, etc.: "309"
+  Piedras, metales preciosos y sus manufacturas, monedas: "310"
+  Metales comunes y sus manufacturas: "311"
+  Máquinas y aparatos, material eléctrico: "312"
+  Máquinas y aparatos eléctricos y objetos destinado al uso electrónico y sus partes: "312"
+  Material de transporte terrestre: "313"
+  Vehículos de navegación aérea, marítima y fluvial: "314"
+  Resto de MOI: "399"
+  Petróleo crudo: "401"
+  Carburantes: "402"
+  Grasas y aceites lubricantes: "403"
+  Gas de petróleo y otros hidrocarburos gaseosos: "404"
+  Energía eléctrica: "405"
+  Resto de combustibles: "499"
