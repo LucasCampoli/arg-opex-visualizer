@@ -45,6 +45,7 @@ provincias:
   TF:
     iso: AR-V
     nombre: "Tierra del Fuego, Antártida e Islas del Atlántico Sur"
+    alias: [Tierra del Fuego]
     region: patagonia
   CA:
     iso: AR-K

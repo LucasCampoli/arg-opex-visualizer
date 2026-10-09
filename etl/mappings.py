@@ -48,15 +48,17 @@ def load_config() -> dict:
     by_indec: dict[str, str] = {}
     names: dict[str, str] = {}
     regions: dict[str, str] = {}
+    name_to_iso: dict[str, str] = {}
     for code, info in provincias["provincias"].items():
         iso = str(info["iso"])
         by_indec[str(code)] = iso
         names[iso] = str(info["nombre"])
         regions[iso] = str(info["region"])
+        for name in [info["nombre"], *info.get("alias", [])]:
+            name_to_iso[norm_name(name)] = iso
     for code, iso in provincias["especiales"].items():
         by_indec[str(code)] = str(iso)
 
-    name_to_iso = {norm_name(name): iso for iso, name in names.items()}
     zone_order = [str(z) for z in zonas["order"]]
     zone_by_code: dict[str, str] = {}
     for zone, codes in zonas["codes"].items():
