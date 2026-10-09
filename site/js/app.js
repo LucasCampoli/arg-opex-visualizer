@@ -631,7 +631,7 @@ function renderPanel(){
 /* ---------- Selección ---------- */
 function isDim(iso){
   const sel = state.sel;
-  return sel.type==='esp' || (sel.type==='region' && DATA.reg[iso]!==sel.id) || (sel.type==='prov' && iso!==sel.id && DATA.reg[iso]!==DATA.reg[sel.id]);
+  return sel.type==='esp' || (sel.type==='region' && DATA.reg[iso]!==sel.id) || (sel.type==='prov' && iso!==sel.id);
 }
 function highlight(){
   const sel = state.sel;
