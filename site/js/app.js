@@ -12,6 +12,7 @@ const UNITS = [
   {id:'tn', short:'Toneladas', long:'miles de toneladas', abbr:'mil t', lede:'miles de toneladas de peso neto', gap:'en toneladas', note:'Toneladas de peso neto.'}
 ];
 const ICONS = 'img/icons.svg';
+const TICK_EVERY = 4;
 const ZONES = [
   {id:'mercosur', name:'Mercosur', group:'América', members:'Brasil, Paraguay, Uruguay y Venezuela, con sus zonas francas'},
   {id:'aladi', name:'Chile, Perú y otros', group:'América', members:'Resto de ALADI: Chile, Perú, Bolivia, Colombia, Cuba, Ecuador y Panamá'},
@@ -675,6 +676,7 @@ async function setPeriod(pk, fromSlider){
   buildPick();
   const i = ORDER.indexOf(pk);
   if(!fromSlider) yearIn.value = i;
+  yearIn.style.setProperty('--at', i/(ORDER.length-1));
   showPeriod(pk);
   document.getElementById('prev').disabled = i===0;
   document.getElementById('next').disabled = i===ORDER.length-1;
@@ -683,6 +685,7 @@ async function setPeriod(pk, fromSlider){
 function showPeriod(pk){
   const sem = isSem(pk);
   yearOut.textContent = sem ? META.semester.heading : pk;
+  yearOut.classList.toggle('sem', sem);
   yearIn.setAttribute('aria-valuetext', sem ? META.semester.aria : pk);
 }
 function renderLede(){
@@ -733,17 +736,17 @@ function initControls(){
   sw.addEventListener('click',()=>{ state.icons = !state.icons; sw.setAttribute('aria-checked',state.icons); drawIcons(); });
   yearIn.max = ORDER.length-1;
   let rt;
-  yearIn.addEventListener('input',()=>{ stopPlay(); const pk = ORDER[+yearIn.value]; showPeriod(pk); clearTimeout(rt); rt=setTimeout(()=>setPeriod(pk,true),60); });
+  yearIn.addEventListener('input',()=>{ stopPlay(); const pk = ORDER[+yearIn.value]; showPeriod(pk); yearIn.style.setProperty('--at', yearIn.value/(ORDER.length-1)); clearTimeout(rt); rt=setTimeout(()=>setPeriod(pk,true),60); });
   document.getElementById('prev').addEventListener('click',()=>{ stopPlay(); const i=ORDER.indexOf(state.period); if(i>0) setPeriod(ORDER[i-1]); });
   document.getElementById('next').addEventListener('click',()=>{ stopPlay(); const i=ORDER.indexOf(state.period); if(i<ORDER.length-1) setPeriod(ORDER[i+1]); });
   document.getElementById('play').addEventListener('click',e=>{
     if(playTimer){ stopPlay(); return; }
     const b = e.currentTarget; b.setAttribute('aria-pressed','true'); b.textContent='❚❚ Pausar';
-    const lastYear = ORDER.filter(k=>!isSem(k)).pop();
-    if(state.period===lastYear || isSem(state.period)) setPeriod(ORDER[0]);
+    const last = ORDER.length-1;
+    if(ORDER.indexOf(state.period)===last) setPeriod(ORDER[0]);
     playTimer = setInterval(()=>{
       const i = ORDER.indexOf(state.period);
-      if(ORDER[i]===lastYear){ stopPlay(); return; }
+      if(i===last){ stopPlay(); return; }
       setPeriod(ORDER[i+1]);
     }, 1300);
   });
@@ -758,13 +761,10 @@ function setNarrow(){
 }
 
 function renderTicks(){
-  const years = ORDER.filter(k=>!isSem(k));
-  const first = +years[0], last = +years[years.length-1];
-  const labels = [String(first)];
-  for(let y=first+8; y<last; y+=8) labels.push(String(y));
-  if(labels[labels.length-1]!==String(last)) labels.push(String(last));
-  if(META.semester) labels.push(META.semester.tick);
-  document.querySelector('.ticks').innerHTML = labels.map(t=>`<span>${esc(t)}</span>`).join('');
+  const last = ORDER.length-1;
+  const labeled = (i,every) => i===last || (i%every===0 && last-i>=every/2);
+  document.querySelector('.ticks').innerHTML = ORDER.map((k,i)=>
+    `<span style="--at:${i/last}"${labeled(i,2*TICK_EVERY)?'':' class="minor"'}>${labeled(i,TICK_EVERY) ? esc(isSem(k) ? META.semester.tick : k) : ''}</span>`).join('');
 }
 
 async function getJSON(path){
@@ -813,8 +813,7 @@ async function main(){
   mq.addEventListener?.('change',paint);
   new MutationObserver(paint).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
   let rz; addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(()=>{ if(setNarrow()){ drawLegend(); drawFlows(); drawIcons(); } },150); });
-  const years = ORDER.filter(k=>!isSem(k));
-  await setPeriod(years[years.length-1]);
+  await setPeriod(ORDER[ORDER.length-1]);
   select({type:'pais'});
 }
 main();

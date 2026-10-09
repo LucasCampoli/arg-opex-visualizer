@@ -140,9 +140,15 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 .yearbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:24px 0 0;padding:14px 16px;background:var(--surface);border:1px solid var(--rule);border-radius:8px}
 .yearbar .yr{font-stretch:78%;font-weight:720;font-size:30px;line-height:1;min-width:6.4ch}
 .yearbar .yr.sem{font-size:22px}
-.yearbar .slider{flex:1 1 320px;display:flex;flex-direction:column;gap:2px;min-width:220px}
-.yearbar input[type=range]{width:100%;accent-color:var(--flow-strong);margin:0;height:28px}
-.yearbar .ticks{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.yearbar .slider{--thumb:18px;flex:1 1 320px;display:flex;flex-direction:column;gap:2px;min-width:220px}
+.yearbar input[type=range]{-webkit-appearance:none;appearance:none;width:100%;margin:0;height:28px;background:transparent;cursor:pointer}
+.yearbar input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:linear-gradient(to right,var(--flow-strong) calc(var(--thumb)/2 + var(--at,0)*(100% - var(--thumb))),var(--rule) 0)}
+.yearbar input[type=range]::-moz-range-track{height:5px;border-radius:3px;background:linear-gradient(to right,var(--flow-strong) calc(var(--thumb)/2 + var(--at,0)*(100% - var(--thumb))),var(--rule) 0)}
+.yearbar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;box-sizing:border-box;width:var(--thumb);height:var(--thumb);margin-top:calc(2.5px - var(--thumb)/2);border-radius:50%;background:var(--flow-strong);border:3px solid var(--surface)}
+.yearbar input[type=range]::-moz-range-thumb{box-sizing:border-box;width:var(--thumb);height:var(--thumb);border-radius:50%;background:var(--flow-strong);border:3px solid var(--surface)}
+.yearbar .ticks{position:relative;height:20px;margin:0 calc(var(--thumb)/2);font-size:12px;color:var(--muted)}
+.yearbar .ticks span{position:absolute;top:0;left:calc(var(--at)*100%);transform:translateX(calc(var(--at)*-100%));padding-top:7px;white-space:nowrap;line-height:1}
+.yearbar .ticks span::before{content:"";position:absolute;top:0;left:calc(var(--at)*100%);width:1px;height:4px;background:var(--rule)}
 .yearbar .btn{font:inherit;font-size:14px;color:var(--ink);background:var(--sea);border:1px solid var(--rule);border-radius:6px;padding:7px 11px;cursor:pointer;min-height:36px}
 .yearbar .btn:disabled{opacity:.4;cursor:default}
 .yearbar .btn[aria-pressed="true"]{background:var(--ink);color:var(--sea)}
@@ -170,7 +176,7 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 .spec-lbl{font-size:13px;fill:var(--muted);font-stretch:85%;paint-order:stroke;stroke:var(--sea);stroke-width:3.5px;stroke-linejoin:round}
 .narrow .spec-lbl{font-size:20px}
 .desc{font-size:15px;line-height:1.5;margin:12px 0 0;max-width:52ch}
-@media (max-width:600px){.yearbar .slider{order:5;flex-basis:100%}.yearbar .yr{flex:1}}
+@media (max-width:600px){.yearbar .slider{order:5;flex-basis:100%}.yearbar .yr{flex:1}.yearbar .ticks .minor{font-size:0}}
 
 /* map */
 .neighbor{fill:var(--land);stroke:var(--land-line);stroke-width:.6}
