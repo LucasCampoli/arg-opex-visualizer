@@ -128,7 +128,7 @@ const tip = document.getElementById('tip');
 const viz = document.getElementById('viz');
 
 /* ---------- Estado ---------- */
-const state = {sel:{type:'pais',id:null}, tipo:0, unit:0, period:null};
+const state = {sel:{type:'pais',id:null}, tipo:0, unit:0, period:null, flows:[], pos:{}};
 
 /* ---------- Mapa base ---------- */
 function drawBase(){
@@ -150,6 +150,8 @@ function drawBase(){
     .on('click',()=>select({type:'prov',id:'AR-C'}))
     .on('pointermove',e=>showTip(e,provTip(P['AR-C'])))
     .on('pointerleave',hideTip);
+  const land = d3.select('#g-prov').node().getBBox(), vb = svg.node().viewBox.baseVal;
+  d3.select('#clip-hits rect').attr('x',land.x+land.width).attr('y',vb.y).attr('width',vb.width).attr('height',vb.height);
 }
 
 function provTip(p){
@@ -274,13 +276,17 @@ function weightedCentroid(isos){
 }
 let REG_C = {};
 
+function rubroParts(row){
+  const parts = row.slice(1).map((v,i)=>!state.tipo || state.tipo===i+1 ? v : 0);
+  return parts.every(v=>v!=null) ? parts : null;
+}
 function flowsFor(sel){
   const flows = [], origins = [];
   let missing = false;
   const push = (from, view, o) => {
     if(!view.z){ missing = true; return; }
     let s = 0;
-    ZKEYS.forEach(z=>{ const v = view.z[z][state.tipo]; if(v>0.05){ flows.push({from,zone:z,v,o}); s+=v; } });
+    ZKEYS.forEach(z=>{ const v = view.z[z][state.tipo]; if(v>0.05){ flows.push({from,zone:z,v,o,parts:rubroParts(view.z[z])}); s+=v; } });
     const rest = view.total - s;
     if(rest > Math.max(5,view.total*0.002)) flows.push({from,zone:'nd',v:rest,o,nd:true});
   };
@@ -301,14 +307,17 @@ function flowsFor(sel){
   return {flows, origins, vals, missing};
 }
 
-function ribbon(ox,oy,w0,nx,ny,w){
+function anchors(ox,oy,w0,nx,ny,w){
   const gx = Math.max(400, ox+40), gy = oy + (ny-oy)*0.14;
-  const ax = (ox+gx)/2, bx = gx + (nx-gx)*0.5;
-  const h0 = w0/2, h1 = w/2;
-  return `M${ox},${oy-h0}C${ax},${oy-h0} ${ax},${gy-h0} ${gx},${gy-h0}`+
-         `C${bx},${gy-h0} ${bx},${ny-h1} ${nx},${ny-h1}L${nx},${ny+h1}`+
-         `C${bx},${ny+h1} ${bx},${gy+h0} ${gx},${gy+h0}`+
-         `C${ax},${gy+h0} ${ax},${oy+h0} ${ox},${oy+h0}Z`;
+  return {ox, gx, nx, ax:(ox+gx)/2, bx:gx+(nx-gx)*0.5, o:[oy-w0/2, oy+w0/2], g:[gy-w0/2, gy+w0/2], d:[ny-w/2, ny+w/2]};
+}
+function band(a, c0=0, c1=1){
+  const at = (e,c) => e[0] + (e[1]-e[0])*c;
+  const [o0,g0,d0,o1,g1,d1] = [at(a.o,c0), at(a.g,c0), at(a.d,c0), at(a.o,c1), at(a.g,c1), at(a.d,c1)];
+  return `M${a.ox},${o0}C${a.ax},${o0} ${a.ax},${g0} ${a.gx},${g0}`+
+         `C${a.bx},${g0} ${a.bx},${d0} ${a.nx},${d0}L${a.nx},${d1}`+
+         `C${a.bx},${d1} ${a.bx},${g1} ${a.gx},${g1}`+
+         `C${a.ax},${g1} ${a.ax},${o1} ${a.ox},${o1}Z`;
 }
 
 function drawFlows(){
@@ -323,15 +332,22 @@ function drawFlows(){
     let y = L.pos[zid].by;
     arr.forEach(f=>{ const h=L.k*f.v; f.ny = y + h/2; f.w = h; y += h; });
   });
-  flows.forEach(f=>{ f.w0 = Math.max(1, Math.min(f.w, 1 + f.w*0.07)); });
+  flows.forEach(f=>{ f.w0 = Math.max(1, Math.min(f.w, 1 + f.w*0.07)); f.a = anchors(f.o[0],f.o[1],f.w0,NX,f.ny,f.w); });
+  state.flows = flows;
+  focusZone(null,false);
 
   const gF = d3.select('#g-flows');
   gF.selectAll('g.batch').interrupt().transition().duration(DUR()/2).style('opacity',0).remove();
   const batch = gF.append('g').attr('class','batch').style('opacity',0);
   batch.selectAll('path').data(flows).join('path')
-    .attr('class',f=>'flow'+(f.nd?' nd':'')).attr('data-zone',f=>f.zone)
-    .attr('d',f=>ribbon(f.o[0],f.o[1],f.w0,NX,f.ny,f.w));
+    .attr('class',f=>'flow'+(f.nd?' nd':''))
+    .attr('d',f=>band(f.a));
   batch.transition().delay(DUR()/3).duration(DUR()).style('opacity',1);
+
+  d3.select('#g-hits').selectAll('path').data(flows).join('path').attr('class','flow-hit').attr('d',f=>band(f.a))
+    .on('pointerenter',(e,f)=>focusZone(f.zone,true))
+    .on('pointermove',(e,f)=>showTip(e,zoneTip(f.zone)))
+    .on('pointerleave',(e,f)=>{ focusZone(f.zone,false); hideTip(); });
 
   const note = d3.select('#g-note').selectAll('text').data(missing ? [gapText('los destinos')] : []).join('text')
     .attr('class','flow-note').attr('x',NX).attr('y',TOP+S.hh);
@@ -381,20 +397,46 @@ function drawFlows(){
     .transition().duration(DUR()).attr('y',z=>L.pos[z.id].cy+S.lblDy);
 
   state.lastVals = vals;
+  state.pos = L.pos;
 }
 
+function zoneParts(zid){
+  const flows = state.flows.filter(f=>f.zone===zid && f.parts);
+  return flows.length ? RUBROS.map((r,i)=>sum(flows.map(f=>f.parts[i]))) : null;
+}
+function splitBar(zid){
+  const parts = zoneParts(zid), pos = state.pos[zid];
+  if(!parts || !pos) return [];
+  const total = sum(parts);
+  let y = pos.by;
+  return parts.flatMap((v,i)=>{ const y0 = y; y += pos.bh*v/total; return v>0 ? [{y:y0, h:y-y0, css:RUBROS[i].css}] : []; });
+}
+function splitBands(zid){
+  return state.flows.filter(f=>f.zone===zid && f.parts).flatMap(f=>{
+    const total = sum(f.parts);
+    let c = 0;
+    return f.parts.flatMap((v,i)=>{ const c0 = c; c += v/total; return v>0 ? [{d:band(f.a,c0,c), css:RUBROS[i].css}] : []; });
+  });
+}
 function focusZone(zid,on){
-  const g = d3.select('#g-flows');
-  g.classed('focus',on);
-  g.selectAll('path').classed('on',function(){ return on && this.getAttribute('data-zone')===zid; });
+  d3.select('#g-flows').classed('focus',on).selectAll('path').classed('on',f=>on && f.zone===zid);
+  d3.select('#g-split').selectAll('path').data(on ? splitBands(zid) : []).join('path')
+    .attr('class','split').attr('d',d=>d.d).style('fill',d=>`var(${d.css})`);
+  d3.select('#g-split-bar').selectAll('rect').data(on ? splitBar(zid) : []).join('rect')
+    .attr('class','split').attr('x',NX).attr('width',BW).attr('y',d=>d.y).attr('height',d=>d.h).style('fill',d=>`var(${d.css})`);
 }
 function selTotal(sel){ return sel.type==='pais' ? NATION.total : sel.type==='region' ? REGIONS[sel.id].total : sel.type==='esp' ? OTHER[sel.id].total : P[sel.id].total; }
 function selName(sel){ return sel.type==='pais' ? 'el país' : sel.type==='region' ? REGIONS[sel.id].name : sel.type==='esp' ? SPECIAL[sel.id].name.toLowerCase() : P[sel.id].name; }
+function mixLine(zid, v){
+  const parts = zoneParts(zid);
+  if(state.tipo || !parts) return '';
+  return `<span class="mix">${RUBROS.map((r,i)=>parts[i]>0.05 ? `<span><i style="background:var(${r.css})"></i>${r.id} ${pctOf(parts[i],v)}</span>` : '').join('')}</span>`;
+}
 function zoneTip(zid){
   const z = ZI[zid]; const sel = state.sel; const v = state.lastVals[zid]||0;
   let s = `<b>${esc(z.name)}</b><br><span class="s">${esc(z.members)}</span><br>`;
   s += v>0 ? `${fmt(v)}, ${pctOf(v,selTotal(sel))} de lo exportado por ${esc(selName(sel))}` : 'Sin exportaciones en este período';
-  return s;
+  return s + mixLine(zid, v);
 }
 
 /* ---------- Tooltip ---------- */

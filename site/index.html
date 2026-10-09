@@ -52,6 +52,7 @@
           <linearGradient id="fadeT" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="60"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
           <mask id="mR" maskUnits="userSpaceOnUse" x="-60" y="-60" width="1020" height="1120"><rect x="-60" y="-60" width="1020" height="1120" fill="url(#fadeR)"/></mask>
           <mask id="mT" maskUnits="userSpaceOnUse" x="-60" y="-60" width="1020" height="1120"><rect x="-60" y="-60" width="1020" height="1120" fill="url(#fadeT)"/></mask>
+          <clipPath id="clip-hits"><rect></rect></clipPath>
         </defs>
         <g mask="url(#mT)"><g mask="url(#mR)">
           <g id="g-grat"></g>
@@ -61,12 +62,15 @@
         <g id="g-caba"></g>
         <g id="g-legend"></g>
         <g id="g-flows" class="flows"></g>
+        <g id="g-split"></g>
         <g id="g-origins"></g>
         <g id="g-special"></g>
+        <g id="g-hits" clip-path="url(#clip-hits)"></g>
         <g id="g-nodes"></g>
+        <g id="g-split-bar"></g>
         <g id="g-note"></g>
       </svg>
-      <p class="howto">El color muestra cuánto exporta cada provincia del tipo de producto elegido, en dólares o en toneladas. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Tocá un destino o pasá el cursor encima para aislar sus bandas.</p>
+      <p class="howto">El color muestra cuánto exporta cada provincia del tipo de producto elegido, en dólares o en toneladas. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Pasá el cursor por un destino o por sus bandas para aislarlas y ver qué parte es de cada rubro.</p>
       <div class="tip" id="tip" role="status" aria-live="polite"></div>
     </div>
     <aside class="panel" id="panel" aria-live="polite"></aside>

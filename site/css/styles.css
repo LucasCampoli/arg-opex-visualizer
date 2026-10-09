@@ -178,6 +178,8 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 .flow.nd{fill:var(--nd);opacity:.28}
 .flows.focus .flow{opacity:.1}
 .flows.focus .flow.on{opacity:.75}
+.flow-hit{fill:transparent}
+.split{opacity:.95;pointer-events:none}
 .flow-note{font-size:17px;fill:var(--muted)}
 .origin{fill:var(--sea);stroke:var(--flow-strong);stroke-width:2;pointer-events:none}
 .origin-lbl{font-size:13px;fill:var(--muted);font-stretch:85%;pointer-events:none}
@@ -201,6 +203,8 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px s
 }
 .tip b{font-weight:650}
 .tip .s{opacity:.78;font-size:13px}
+.tip .mix{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;font-size:13px}
+.tip .mix i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
 
 /* panel */
 .panel{padding-top:4px}
