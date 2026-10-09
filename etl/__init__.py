@@ -6,21 +6,25 @@ from pathlib import Path
 
 from etl.aggregate import aggregate_years
 from etl.read_anexo import read_anexo
+from etl.read_mensual import read_mensual
 from etl.read_microdatos import read_microdatos
 from etl.validate import ValidationError, validate
 from etl.write import write_output
 
 
-def run(microdatos: Path, anexo: Path | None, out_dir: Path, sources: dict | None = None) -> dict:
+def run(microdatos: Path, anexo: Path | None, serie: Path | None, out_dir: Path, sources: dict | None = None) -> dict:
     micro = read_microdatos(microdatos)
     periods, unrounded = aggregate_years(micro)
     anexo_data = read_anexo(anexo) if anexo else None
     sem: dict = {}
     semester = None
     if anexo_data is not None:
-        periods[anexo_data.period_id] = anexo_data.period
-        sem = anexo_data.sem
+        if serie is None:
+            raise ValueError("Con el anexo del semestre hace falta la serie mensual (serie_mensual en sources.yml)")
+        sem = read_mensual(serie)
         year = anexo_data.year
+        _attach_tons(anexo_data.period, sem["tn"], str(year))
+        periods[anexo_data.period_id] = anexo_data.period
         semester = {
             "id": anexo_data.period_id,
             "year": year,
@@ -35,10 +39,11 @@ def run(microdatos: Path, anexo: Path | None, out_dir: Path, sources: dict | Non
     order = [str(year) for year in micro.years]
     if anexo_data is not None:
         order.append(anexo_data.period_id)
-    report = validate(micro, periods, unrounded, anexo_data, micro.country_codes)
+    report = validate(micro, periods, unrounded, anexo_data, sem, micro.country_codes)
     source_info = {
         "microdatos": microdatos.name,
         "anexo_semestre": anexo.name if anexo else None,
+        "serie_mensual": serie.name if anexo and serie else None,
         "indec": "https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-2-79",
     }
     if sources:
@@ -46,6 +51,13 @@ def run(microdatos: Path, anexo: Path | None, out_dir: Path, sources: dict | Non
     write_output(out_dir, periods, sem, order, report, source_info, semester)
     _print_summary(report, microdatos, anexo)
     return report
+
+
+def _attach_tons(period: dict, tons: dict[str, dict[str, list[float]]], year: str) -> None:
+    for key, origin in period["o"].items():
+        if year not in tons.get(key, {}):
+            raise ValueError(f"La serie mensual no trae el primer semestre de {year} para {key}")
+        origin["tn"] = {"r": tons[key][year]}
 
 
 def _print_summary(report: dict, microdatos: Path, anexo: Path | None) -> None:

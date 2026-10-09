@@ -45,6 +45,7 @@ provincias:
   TF:
     iso: AR-V
     nombre: "Tierra del Fuego, Antártida e Islas del Atlántico Sur"
+    alias: [Tierra del Fuego]
     region: patagonia
   CA:
     iso: AR-K
@@ -104,6 +105,10 @@ especiales:
   EX: EXT
   PC: PLAT
   IN: IND
+
+especiales_serie:
+  Extranjero y Plataforma Continental: EXTPLAT
+  Indeterminado: IND
 
 # Etiqueta normalizada del anexo → id de región.
 regiones_anexo:

@@ -2,26 +2,27 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
-from etl.mappings import load_config, province_iso, zone_of
+from etl.mappings import MEASURES, RUBROS, icon_of, load_config, province_iso, put, rubro_of, vector, zone_of
 from etl.read_microdatos import Microdatos
-
-RUBRO_INDEX = {"1": 0, "2": 1, "3": 2, "4": 3}
 
 
 @dataclass
 class _Acc:
-    t: float = 0.0
-    r: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])
-    z: dict[str, float] = field(default_factory=lambda: defaultdict(float))
+    r: list[float] = field(default_factory=vector)
+    z: dict[str, list[float]] = field(default_factory=lambda: defaultdict(vector))
     p: dict[str, float] = field(default_factory=lambda: defaultdict(float))
-    c: dict[str, float] = field(default_factory=lambda: defaultdict(float))
+    c: dict[str, list[float]] = field(default_factory=lambda: defaultdict(vector))
 
 
 def r1(value: float) -> float:
     return round(value, 1)
+
+
+def r1s(values: list[float]) -> list[float]:
+    return [r1(value) for value in values]
 
 
 def aggregate_years(micro: Microdatos) -> tuple[dict[str, dict], dict[int, float]]:
@@ -48,23 +49,25 @@ def aggregate_years(micro: Microdatos) -> tuple[dict[str, dict], dict[int, float
     product_name.update(product_rename)
     country_name.update(country_rename)
 
-    buckets: dict[tuple[int, str], _Acc] = defaultdict(_Acc)
+    buckets: dict[tuple[int, str, str], _Acc] = defaultdict(_Acc)
     unrounded: dict[int, float] = defaultdict(float)
 
     for row in micro.rows:
         iso = province_iso(row.province)
         if iso is None:
             raise ValueError(f"Código de provincia desconocido: {row.province!r} ({row.year})")
-        digit = row.rubro[:1]
-        if digit not in RUBRO_INDEX:
+        rubro = rubro_of(row.rubro)
+        if rubro is None:
             raise ValueError(f"Rubro sin gran rubro: {row.rubro!r} ({row.year})")
-        value = row.fob / 1e6
-        unrounded[row.year] += value
-        _add(buckets[(row.year, iso)], digit, row.rubro, row.country, value)
-        region = regions.get(iso)
-        if region:
-            _add(buckets[(row.year, "R:" + region)], digit, row.rubro, row.country, value)
-        _add(buckets[(row.year, "N")], digit, row.rubro, row.country, value)
+        zone = zone_of(row.country)
+        amounts = {"usd": row.fob / 1e6, "tn": row.kg / 1e6}
+        unrounded[row.year] += amounts["usd"]
+        keys = [iso, "N"]
+        if iso in regions:
+            keys.append("R:" + regions[iso])
+        for key in keys:
+            for measure, amount in amounts.items():
+                _add(buckets[(row.year, key, measure)], rubro, row.rubro, row.country, zone, amount)
 
     origins = list(names) + ["EXT", "PLAT", "IND"]
     region_ids = ["pampeana", "patagonia", "noa", "cuyo", "nea"]
@@ -72,60 +75,72 @@ def aggregate_years(micro: Microdatos) -> tuple[dict[str, dict], dict[int, float
     for year in micro.years:
         period: dict = {"kind": "year", "label": str(year), "o": {}, "reg": {}}
         for origin in origins:
-            acc = buckets.get((year, origin))
-            period["o"][origin] = _origin_payload(acc, zones, product_name, country_name, confidential, 6, 5)
+            period["o"][origin] = {
+                measure: _block(buckets[(year, origin, measure)], zones, product_name, country_name, confidential, 6, 5)
+                for measure in MEASURES
+            }
         for region in region_ids:
-            acc = buckets[(year, "R:" + region)]
-            period["reg"][region] = _rank_payload(acc, product_name, country_name, confidential, 6, 5)
-        period["nat"] = _rank_payload(buckets[(year, "N")], product_name, country_name, confidential, 8, 6)
+            period["reg"][region] = {
+                measure: _ranking(buckets[(year, "R:" + region, measure)], product_name, country_name, confidential, 6, 5)
+                for measure in MEASURES
+            }
+        period["nat"] = {
+            measure: _ranking(buckets[(year, "N", measure)], product_name, country_name, confidential, 8, 6)
+            for measure in MEASURES
+        }
         periods[str(year)] = period
     return periods, dict(unrounded)
 
 
-def _add(acc: _Acc, digit: str, rubro: str, country: str, value: float) -> None:
-    acc.t += value
-    acc.r[RUBRO_INDEX[digit]] += value
-    acc.z[zone_of(country)] += value
-    acc.p[rubro] += value
+def _add(acc: _Acc, rubro: int, code: str, country: str, zone: str, amount: float) -> None:
+    put(acc.r, rubro, amount)
+    put(acc.z[zone], rubro, amount)
+    acc.p[code] += amount
     if country:
-        acc.c[country] += value
+        put(acc.c[country], rubro, amount)
 
 
-def _topn(amounts: dict[str, float], names: dict[str, str], confidential: set[str], limit: int) -> list:
+def _block(acc: _Acc, zones, product_name, country_name, confidential, n_products, n_countries) -> dict:
+    return {
+        "r": r1s(acc.r),
+        "z": [r1s(acc.z[zone]) for zone in zones],
+        **_ranking(acc, product_name, country_name, confidential, n_products, n_countries),
+    }
+
+
+def _ranking(acc: _Acc, product_name, country_name, confidential, n_products, n_countries) -> dict:
+    return {
+        "p": _products(acc.p, product_name, confidential, n_products),
+        "c": _countries(acc.c, country_name, n_countries),
+        "k": _confidential(acc.p, confidential),
+    }
+
+
+def _products(amounts: dict[str, float], names: dict[str, str], confidential: set[str], limit: int) -> list:
     ranked = sorted(
-        ((code, value) for code, value in amounts.items() if code not in confidential),
+        ((code, value) for code, value in amounts.items() if code not in confidential and value > 0.05),
         key=lambda item: -item[1],
-    )[:limit]
-    return [[names.get(code, code), r1(value)] for code, value in ranked if value > 0.05]
+    )
+    taken: Counter[int] = Counter()
+    rows = []
+    for code, value in ranked:
+        rubro = rubro_of(code)
+        if taken[rubro] < limit:
+            taken[rubro] += 1
+            rows.append([names.get(code, code), rubro, r1(value), icon_of(code)])
+    return rows
 
 
-def _confidential_total(acc: _Acc, confidential: set[str]) -> float:
-    return r1(sum(acc.p.get(code, 0.0) for code in confidential))
+def _countries(amounts: dict[str, list[float]], names: dict[str, str], limit: int) -> list:
+    kept: set[str] = set()
+    for index in range(len(RUBROS) + 1):
+        ranked = sorted(amounts, key=lambda code: -amounts[code][index])[:limit]
+        kept.update(code for code in ranked if amounts[code][index] > 0.05)
+    return [[names.get(code, code), r1s(amounts[code])] for code in sorted(kept, key=lambda code: -amounts[code][0])]
 
 
-def _origin_payload(acc, zones, product_name, country_name, confidential, n_products, n_countries) -> dict:
-    if acc is None:
-        return {
-            "t": 0,
-            "r": [0, 0, 0, 0],
-            "z": [0] * len(zones),
-            "p": [],
-            "c": [],
-            "k": 0,
-        }
-    return {
-        "t": r1(acc.t),
-        "r": [r1(value) for value in acc.r],
-        "z": [r1(acc.z[zone]) for zone in zones],
-        "p": _topn(acc.p, product_name, confidential, n_products),
-        "c": _topn(acc.c, country_name, confidential, n_countries),
-        "k": _confidential_total(acc, confidential),
-    }
-
-
-def _rank_payload(acc: _Acc, product_name, country_name, confidential, n_products, n_countries) -> dict:
-    return {
-        "p": _topn(acc.p, product_name, confidential, n_products),
-        "c": _topn(acc.c, country_name, confidential, n_countries),
-        "k": _confidential_total(acc, confidential),
-    }
+def _confidential(amounts: dict[str, float], confidential: set[str]) -> list[float]:
+    values = vector()
+    for code in confidential:
+        put(values, rubro_of(code), amounts.get(code, 0.0))
+    return r1s(values)

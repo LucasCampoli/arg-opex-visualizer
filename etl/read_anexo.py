@@ -9,7 +9,7 @@ from pathlib import Path
 import xlrd
 
 from etl.aggregate import r1
-from etl.mappings import load_config, norm_name, zone_order
+from etl.mappings import RUBROS, icon_of, load_config, norm_name, rubro_of, subrubro_code, zone_order
 
 # Países que el anexo destaca dentro de OP-Zonas, con el nombre que muestra el dashboard.
 _SELECTED = (
@@ -57,7 +57,6 @@ class Anexo:
     year: int
     period_id: str
     period: dict
-    sem: dict
     official_annual: dict[str, dict[str, float]] = field(default_factory=dict)
     official_years: list[str] = field(default_factory=list)
 
@@ -81,13 +80,11 @@ def read_anexo(path: Path) -> Anexo:
     _national_countries(workbook, period, zonas, zone_cols)
     period["complejos"] = _complexes(workbook)
     period["split"] = _split(workbook, year)
-    sem = _semester_series(workbook, names)
     official, official_years = _official_annual(workbook, names)
     return Anexo(
         year=year,
         period_id=period_id,
         period=period,
-        sem=sem,
         official_annual=official,
         official_years=official_years,
     )
@@ -104,21 +101,25 @@ def _semester_period(year, names, zonas, rubros, zone_cols, selected_cols, rubro
         key = "EXTPLAT" if iso == "EXT" else iso
         countries = sorted(
             (
-                [label, r1(num(zone_row[col]))]
+                [label, _total_only(num(zone_row[col]))]
                 for label, col in selected_cols.items()
                 if num(zone_row[col]) > 0.05
             ),
-            key=lambda item: -item[1],
+            key=lambda item: -item[1][0],
         )[:5]
         period["o"][key] = {
-            "t": r1(num(rubro_row[rubro_cols["total"]])),
-            "r": [r1(num(rubro_row[rubro_cols[code]])) for code in ("pp", "moa", "moi", "cye")],
-            "z": [r1(num(zone_row[zone_cols[zone]])) if zone in zone_cols else 0 for zone in zones],
-            "p": products.get(iso, [])[:6],
-            "c": countries,
-            "sel": True,
+            "usd": {
+                "r": [r1(num(rubro_row[rubro_cols[code]])) for code in ("total", "pp", "moa", "moi", "cye")],
+                "z": [_total_only(num(zone_row[zone_cols[zone]]) if zone in zone_cols else 0) for zone in zones],
+                "p": products.get(iso, []),
+                "c": countries,
+            }
         }
     return period
+
+
+def _total_only(value: float) -> list:
+    return [r1(value)] + [None] * len(RUBROS)
 
 
 def _regions_and_countries(workbook: xlrd.Book, period: dict, year: int) -> None:
@@ -134,7 +135,7 @@ def _regions_and_countries(workbook: xlrd.Book, period: dict, year: int) -> None
         label = norm_name(row[0])
         if label in labels:
             current = labels[label]
-            period["reg"][current] = {"p": [], "c": []}
+            period["reg"][current] = {"usd": {"p": [], "c": []}}
             continue
         if label.startswith("extranjero") or label == "indeterminado" or label == "":
             current = None
@@ -143,8 +144,9 @@ def _regions_and_countries(workbook: xlrd.Book, period: dict, year: int) -> None
             name = str(row[0]).strip()
             name = name.replace("Corea, República de", "Corea del Sur")
             name = name.replace("Indeterminado (Continente)", "Destino indeterminado")
-            if len(period["reg"][current]["c"]) < 5:
-                period["reg"][current]["c"].append([name, r1(num(row[value_col]))])
+            countries = period["reg"][current]["usd"]["c"]
+            if len(countries) < 5:
+                countries.append([name, _total_only(num(row[value_col]))])
 
 
 def _national_countries(workbook, period, zonas, zone_cols) -> None:
@@ -160,7 +162,8 @@ def _national_countries(workbook, period, zonas, zone_cols) -> None:
     total = zonas["TOT"]
     countries.append(["China (incl. Hong Kong)", r1(num(total[zone_cols["china"]]))])
     countries.append(["India", r1(num(total[zone_cols["india"]]))])
-    period["nat"] = {"p": [], "c": sorted(countries, key=lambda item: -item[1])[:6]}
+    ranked = sorted(countries, key=lambda item: -item[1])[:6]
+    period["nat"] = {"usd": {"p": [], "c": [[name, _total_only(value)] for name, value in ranked]}}
 
 
 def _complexes(workbook: xlrd.Book) -> list:
@@ -228,33 +231,15 @@ def _province_products(workbook: xlrd.Book, year: int) -> dict[str, list]:
         if not current or label.startswith("resto de productos"):
             continue
         name = str(row[0]).strip()
+        code = subrubro_code(name)
         current_value = row[current_col]
         if isinstance(current_value, str) and current_value.strip() == "s":
-            products.setdefault(current, []).append([name + " (confidencial)*", None])
+            products.setdefault(current, []).append([name + " (confidencial)*", rubro_of(code), None, icon_of(code)])
         elif num(current_value) > 0:
             previous = num(row[previous_col])
             change = r1(100 * (num(current_value) / previous - 1)) if previous > 0 else None
-            products.setdefault(current, []).append([name, r1(num(current_value)), change])
+            products.setdefault(current, []).append([name, rubro_of(code), r1(num(current_value)), icon_of(code), change])
     return products
-
-
-def _semester_series(workbook: xlrd.Book, names: dict[str, str]) -> dict:
-    sheet = workbook.sheet_by_name(
-        _one_sheet(
-            workbook,
-            lambda label: "region-prov" in label and "semestre" in label,
-            "Region-prov semestre",
-        )
-    )
-    header = _year_header(sheet)
-    labels = load_config()["region_labels"]
-    series: dict[str, dict[str, float]] = {}
-    for index in range(sheet.nrows):
-        row = sheet.row_values(index)
-        key = _row_key(row, names, labels, extranjero="EXTPLAT", total="N")
-        if key:
-            series[key] = {str(year): r1(num(row[col])) for year, col in header}
-    return series
 
 
 def _official_annual(workbook: xlrd.Book, names: dict[str, str]) -> tuple[dict, list[str]]:
@@ -293,24 +278,6 @@ def _by_origin(sheet: xlrd.sheet.Sheet, names: dict[str, str], extranjero: str) 
         elif left.startswith("total") or right.startswith("total"):
             found["TOT"] = row
     return found
-
-
-def _row_key(row: list, names: dict[str, str], labels: dict[str, str], extranjero: str, total: str) -> str | None:
-    left = norm_name(row[0] if row else "")
-    right = norm_name(row[1] if len(row) > 1 else "")
-    if right in names:
-        return names[right]
-    if left in names:
-        return names[left]
-    if left.startswith("total") or right.startswith("total"):
-        return total
-    if left.startswith("extranjero"):
-        return extranjero
-    if left == "indeterminado":
-        return "IND"
-    if left in labels:
-        return "R:" + labels[left]
-    return None
 
 
 def _province_cell(row: list, names: dict[str, str]) -> str | None:

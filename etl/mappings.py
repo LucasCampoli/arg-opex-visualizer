@@ -10,6 +10,8 @@ from pathlib import Path
 import yaml
 
 CONFIG_DIR = Path(__file__).resolve().parent / "config"
+MEASURES = ("usd", "tn")
+RUBROS = ("PP", "MOA", "MOI", "CyE")
 
 
 def norm_name(value: object) -> str:
@@ -48,15 +50,17 @@ def load_config() -> dict:
     by_indec: dict[str, str] = {}
     names: dict[str, str] = {}
     regions: dict[str, str] = {}
+    name_to_iso: dict[str, str] = {}
     for code, info in provincias["provincias"].items():
         iso = str(info["iso"])
         by_indec[str(code)] = iso
         names[iso] = str(info["nombre"])
         regions[iso] = str(info["region"])
+        for name in [info["nombre"], *info.get("alias", [])]:
+            name_to_iso[norm_name(name)] = iso
     for code, iso in provincias["especiales"].items():
         by_indec[str(code)] = str(iso)
 
-    name_to_iso = {norm_name(name): iso for iso, name in names.items()}
     zone_order = [str(z) for z in zonas["order"]]
     zone_by_code: dict[str, str] = {}
     for zone, codes in zonas["codes"].items():
@@ -70,6 +74,9 @@ def load_config() -> dict:
         "regions": regions,
         "name_to_iso": name_to_iso,
         "region_labels": {norm_name(k): str(v) for k, v in provincias["regiones_anexo"].items()},
+        "series_origins": {norm_name(k): str(v) for k, v in provincias["especiales_serie"].items()},
+        "icons": {norm_code(k): str(v) for k, v in productos["iconos"].items()},
+        "subrubros": {norm_name(k): norm_code(v) for k, v in productos["subrubros"].items()},
         "zone_order": zone_order,
         "zone_by_code": zone_by_code,
         "fallback_prefix": fallback,
@@ -93,6 +100,35 @@ def zone_of(country_code: object) -> str:
     if not code:
         return cfg["fallback_default"]
     return cfg["fallback_prefix"].get(code[0], cfg["fallback_default"])
+
+
+def rubro_of(code: str) -> int | None:
+    digit = code[:1]
+    if not digit.isdigit() or not 1 <= int(digit) <= len(RUBROS):
+        return None
+    return int(digit)
+
+
+def icon_of(code: str) -> str:
+    icons = load_config()["icons"]
+    prefix = next(code[:size] for size in range(len(code), 0, -1) if code[:size] in icons)
+    return icons[prefix]
+
+
+def subrubro_code(name: object) -> str:
+    code = load_config()["subrubros"].get(norm_name(name))
+    if code is None:
+        raise ValueError(f"Subrubro sin código en productos.yml: {name!r}")
+    return code
+
+
+def vector() -> list[float]:
+    return [0.0] * (len(RUBROS) + 1)
+
+
+def put(values: list[float], rubro: int, amount: float) -> None:
+    values[0] += amount
+    values[rubro] += amount
 
 
 def province_names() -> dict[str, str]:

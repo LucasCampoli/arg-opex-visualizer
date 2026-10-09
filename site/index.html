@@ -17,12 +17,12 @@
   </header>
 
   <div class="yearbar" role="group" aria-label="Período">
-    <span class="yr" id="year-out" aria-hidden="true">2025</span>
+    <span class="yr" id="year-out" aria-hidden="true"></span>
     <button type="button" class="btn" id="prev" aria-label="Período anterior">‹</button>
     <div class="slider">
       <label for="year" class="lbl" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Año</label>
-      <input type="range" id="year" min="0" max="24" step="1" value="23">
-      <div class="ticks" aria-hidden="true"><span>2002</span><span>2010</span><span>2018</span><span>2025</span><span>1er sem. 26</span></div>
+      <input type="range" id="year" min="0" step="1">
+      <div class="ticks" aria-hidden="true"></div>
     </div>
     <button type="button" class="btn" id="next" aria-label="Período siguiente">›</button>
     <button type="button" class="btn" id="play" aria-pressed="false">▶ Reproducir</button>
@@ -34,8 +34,16 @@
       <select id="pick"></select>
     </div>
     <div class="ctl">
-      <span class="lbl" id="colorby-lbl">Colorear el mapa por</span>
-      <div class="seg" role="group" aria-labelledby="colorby-lbl" id="colorby"></div>
+      <span class="lbl" id="tipo-lbl">Tipo de producto</span>
+      <div class="seg" role="group" aria-labelledby="tipo-lbl" id="tipo"></div>
+    </div>
+    <div class="ctl">
+      <span class="lbl" id="unit-lbl">Unidad</span>
+      <div class="seg" role="group" aria-labelledby="unit-lbl" id="unit"></div>
+    </div>
+    <div class="ctl">
+      <span class="lbl" id="icons-lbl">Principales productos</span>
+      <button type="button" class="switch" id="icons" role="switch" aria-checked="false" aria-labelledby="icons-lbl"><span class="track" aria-hidden="true"></span>Íconos en el mapa</button>
     </div>
   </div>
 
@@ -48,6 +56,7 @@
           <linearGradient id="fadeT" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="60"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
           <mask id="mR" maskUnits="userSpaceOnUse" x="-60" y="-60" width="1020" height="1120"><rect x="-60" y="-60" width="1020" height="1120" fill="url(#fadeR)"/></mask>
           <mask id="mT" maskUnits="userSpaceOnUse" x="-60" y="-60" width="1020" height="1120"><rect x="-60" y="-60" width="1020" height="1120" fill="url(#fadeT)"/></mask>
+          <clipPath id="clip-hits"><rect></rect></clipPath>
         </defs>
         <g mask="url(#mT)"><g mask="url(#mR)">
           <g id="g-grat"></g>
@@ -57,11 +66,16 @@
         <g id="g-caba"></g>
         <g id="g-legend"></g>
         <g id="g-flows" class="flows"></g>
+        <g id="g-split"></g>
+        <g id="g-icons" aria-hidden="true"></g>
         <g id="g-origins"></g>
         <g id="g-special"></g>
+        <g id="g-hits" clip-path="url(#clip-hits)"></g>
         <g id="g-nodes"></g>
+        <g id="g-split-bar"></g>
+        <g id="g-note"></g>
       </svg>
-      <p class="howto">El color muestra cuánto exporta cada provincia. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Tocá un destino o pasá el cursor encima para aislar sus bandas.</p>
+      <p class="howto">El color muestra cuánto exporta cada provincia del tipo de producto elegido, en dólares o en toneladas. La escala de color es la misma para todos los años, así se pueden comparar. Las bandas azules llevan lo exportado desde donde se produjo hasta el mercado que lo compró; su grosor es proporcional al monto dentro del período elegido. Pasá el cursor por un destino o por sus bandas para aislarlas y ver qué parte es de cada rubro. Los íconos muestran los tres principales productos de cada provincia; el borde indica el rubro.</p>
       <div class="tip" id="tip" role="status" aria-live="polite"></div>
     </div>
     <aside class="panel" id="panel" aria-live="polite"></aside>
@@ -69,7 +83,7 @@
 
   <footer>
     <div>
-      <p>Fuentes: INDEC, microdatos de <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-2-79">Origen provincial de las exportaciones (OPEX)</a>, años 2002 a 2025, y <a href="https://www.indec.gob.ar/ftp/cuadros/economia/opex_anexo_cuadros_02_09_26.xls">anexo de cuadros del primer semestre de 2026</a> (septiembre de 2026). Millones de USD FOB corrientes; las cifras de los últimos años son provisorias. Los totales por provincia coinciden con la serie anual oficial del INDEC.</p>
+      <p>Fuentes: INDEC, microdatos de <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-2-79">Origen provincial de las exportaciones (OPEX)</a>, años 2002 a 2025, y <a href="https://www.indec.gob.ar/ftp/cuadros/economia/opex_anexo_cuadros_02_09_26.xls">anexo de cuadros del primer semestre de 2026</a> (septiembre de 2026). Millones de USD FOB corrientes; las cifras de los últimos años son provisorias. Las toneladas son de peso neto; las del semestre salen de la <a href="https://comex.indec.gob.ar/#/database">serie mensual del OPEX</a>, que no abre destinos ni productos. Los totales por provincia coinciden con la serie anual oficial del INDEC.</p>
       <p>Productos: desde 2018 el INDEC agrupa una parte de las exportaciones como «confidencial» para proteger datos de empresas individuales (por ejemplo, buena parte de la minería). Ese monto está incluido en los totales, rubros y destinos, pero no en el ranking de productos.</p>
       <p>Rubros: PP, productos primarios; MOA, manufacturas de origen agropecuario; MOI, manufacturas de origen industrial; CyE, combustibles y energía.</p>
       <p>Código y datos: <a href="https://github.com/LucasCampoli/arg-opex-visualizer">repositorio en GitHub</a>.</p>

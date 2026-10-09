@@ -31,6 +31,7 @@ class MicroRow:
     country: str
     country_name: str
     fob: float
+    kg: float
 
 
 @dataclass
@@ -72,6 +73,7 @@ def read_microdatos(path: Path) -> Microdatos:
                             country=_country_code(values[index["CCOD_PAIS"]]),
                             country_name=str(values[index["DESCRIP_PAIS"]] or "").strip(),
                             fob=float(fob or 0),
+                            kg=float(values[index["PESO_NETO_KG"]] or 0),
                         )
                     )
                     months[year].add(month)
