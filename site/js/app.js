@@ -131,7 +131,7 @@ const tip = document.getElementById('tip');
 const viz = document.getElementById('viz');
 
 /* ---------- Estado ---------- */
-const state = {sel:{type:'pais',id:null}, tipo:0, unit:0, icons:false, period:null, flows:[], pos:{}};
+const state = {sel:{type:'pais',id:null}, tipo:0, unit:0, icons:true, period:null, flows:[], pos:{}};
 
 /* ---------- Mapa base ---------- */
 function drawBase(){
