@@ -85,13 +85,12 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 .wrap{max-width:1320px;margin:0 auto;padding:28px clamp(16px,3vw,40px) 40px}
-header{max-width:760px}
 h1{
   font-stretch:72%;font-weight:760;
   font-size:clamp(32px,4.6vw,58px);line-height:.98;letter-spacing:-.012em;
   margin:0 0 14px;
 }
-.lede{margin:0;color:var(--muted);font-size:17px;line-height:1.5;max-width:62ch}
+.lede{margin:0;color:var(--muted);font-size:17px;line-height:1.5}
 .lede strong{color:var(--ink);font-weight:600}
 
 .controls{
